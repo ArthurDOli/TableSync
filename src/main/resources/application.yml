@@ -1,0 +1,42 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: tablesync
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/tablesync_db
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+    show-sql: true
+
+  websocket:
+    allowed-origins: "*"
+
+jwt:
+  secret: ${JWT_SECRET:}
+  expiration: 86400000
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+
+logging:
+  level:
+    com.tablesync: DEBUG
+    org.springframework.web.socket: DEBUG
+    org.springframework.security: DEBUG
