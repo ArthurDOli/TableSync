@@ -4,11 +4,10 @@ server:
 spring:
   application:
     name: tablesync
+  profiles:
+    active: local
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/tablesync_db
-    username: postgres
-    password: postgres
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -25,7 +24,7 @@ spring:
 
 jwt:
   secret: ${JWT_SECRET:}
-  expiration: 86400000
+  expiration: ${JWT_EXPIRATION:86400000}
 
 springdoc:
   api-docs:
@@ -34,9 +33,3 @@ springdoc:
     path: /swagger-ui.html
     operations-sorter: method
     tags-sorter: alpha
-
-logging:
-  level:
-    com.tablesync: DEBUG
-    org.springframework.web.socket: DEBUG
-    org.springframework.security: DEBUG
