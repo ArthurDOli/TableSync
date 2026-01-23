@@ -12,7 +12,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 
-import java.util.Date;
+import java.time.LocalDateTime;
 
 @Data
 @NoArgsConstructor
@@ -41,7 +41,7 @@ public class User {
     private String password;
 
     @CreationTimestamp
-    private Date createdAt;
+    private LocalDateTime createdAt;
 
     @Builder.Default
     @Enumerated(EnumType.STRING)
