@@ -17,21 +17,38 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 @Entity
-@Table(name = "character_templates")
-public class CharacterTemplate {
+@Table(name = "player_characters")
+public class PlayerCharacter {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
+
+    @NotBlank(message = "Character name is required")
+    @Size(min = 2, max = 50, message = "Character name must be between 2 and 50 characters")
+    private String name;
+
+    @ManyToOne
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
     @ManyToOne
     @JoinColumn(name = "session_id", nullable = false)
     private GameSession session;
 
-    @NotBlank(message = "Template name is required")
-    @Size(min = 2, max = 30, message = "Template name must be between 2 and 30 characters")
-    private String name;
+    @ManyToOne
+    @JoinColumn(name = "template_id", nullable = true)
+    private CharacterTemplate template;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb", nullable = false)
-    private String schemaJson;
+    private String sheetData;
+
+    @Builder.Default
+    private Double tokenScale = 1.0;
+
+    private Double tokenX;
+
+    private Double tokenY;
+
+    private String imageUrl;
 }
