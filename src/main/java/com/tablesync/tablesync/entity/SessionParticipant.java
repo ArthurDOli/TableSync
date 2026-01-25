@@ -2,10 +2,7 @@ package com.tablesync.tablesync.entity;
 
 import com.tablesync.tablesync.enums.SessionRole;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
@@ -16,20 +13,24 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 @Entity
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @Table(name = "session_participants", uniqueConstraints = {
         @UniqueConstraint(columnNames = {"user_id", "session_id"})
 })
 public class SessionParticipant {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
+    @EqualsAndHashCode.Include
     private UUID id;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
+    @ToString.Exclude
     private User user;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "session_id", nullable = false)
+    @ToString.Exclude
     private GameSession session;
 
     @Enumerated(EnumType.STRING)

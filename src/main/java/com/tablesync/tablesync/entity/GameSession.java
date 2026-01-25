@@ -4,10 +4,7 @@ import com.tablesync.tablesync.enums.SessionStatus;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
@@ -18,10 +15,12 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 @Entity
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @Table(name = "game_sessions")
 public class GameSession {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
+    @EqualsAndHashCode.Include
     private UUID id;
 
     @NotBlank(message = "Session name is required")
@@ -34,8 +33,9 @@ public class GameSession {
     @NotBlank(message = "Password is required")
     private String password;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "master_id", nullable = false)
+    @ToString.Exclude
     private User master;
 
     private String backgroundImageUrl;
