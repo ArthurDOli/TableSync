@@ -30,7 +30,7 @@ public class SessionService {
         User currentUser = getCurrentAuthenticatedUser();
 
         GameSession session = buildSessionEntity(request, currentUser);
-        GameSession savedSession = sessionRepository.save(session);
+        GameSession savedSession = sessionRepository.saveAndFlush(session);
 
         registerMasterAsParticipant(savedSession, currentUser);
 
