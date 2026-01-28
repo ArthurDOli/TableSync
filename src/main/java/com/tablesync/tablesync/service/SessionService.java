@@ -1,6 +1,7 @@
 package com.tablesync.tablesync.service;
 
 import com.tablesync.tablesync.dto.session.request.CreateSessionRequest;
+import com.tablesync.tablesync.dto.session.request.JoinSessionRequest;
 import com.tablesync.tablesync.dto.session.response.SessionResponse;
 import com.tablesync.tablesync.entity.GameSession;
 import com.tablesync.tablesync.entity.SessionParticipant;
@@ -36,6 +37,21 @@ public class SessionService {
         registerMasterAsParticipant(savedSession, currentUser);
 
         return SessionResponse.fromEntity(savedSession);
+    }
+
+    @Transactional
+    public SessionResponse joinSession(JoinSessionRequest request) {
+        User currentUser = getCurrentAuthenticatedUser();
+        UUID sessionId = UUID.fromString(request.getSessionId());
+
+        GameSession session = findSessionById(sessionId);
+
+        validateUserNotParticipant(currentUser.getId(), sessionId);
+        validateSessionPassword(session, request.getPassword());
+
+        createAndSavePlayerParticipant(currentUser, session);
+
+        return SessionResponse.fromEntity(session);
     }
 
     public List<SessionResponse> getMySessions() {
