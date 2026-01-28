@@ -16,6 +16,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -38,6 +39,13 @@ public class TemplateService {
         CharacterTemplate savedTemplate = templateRepository.save(template);
 
         return TemplateResponse.fromEntity(savedTemplate, objectMapper);
+    }
+
+    public List<TemplateResponse> listTemplatesBySession(UUID sessionId) {
+        return templateRepository.findBySessionId(sessionId)
+                .stream()
+                .map(t -> TemplateResponse.fromEntity(t, objectMapper))
+                .toList();
     }
 
     private User getCurrentAuthenticatedUser() {
