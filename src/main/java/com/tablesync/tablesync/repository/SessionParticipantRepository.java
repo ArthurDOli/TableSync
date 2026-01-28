@@ -18,4 +18,7 @@ public interface SessionParticipantRepository extends JpaRepository<SessionParti
 
     @EntityGraph(attributePaths = "user")
     List<SessionParticipant> findBySessionId(UUID sessionId);
+
+    @EntityGraph(attributePaths = {"session", "session.master"})
+    List<SessionParticipant> findByUserId(Long userId);
 }

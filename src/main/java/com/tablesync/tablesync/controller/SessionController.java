@@ -1,6 +1,7 @@
 package com.tablesync.tablesync.controller;
 
 import com.tablesync.tablesync.dto.session.request.CreateSessionRequest;
+import com.tablesync.tablesync.dto.session.request.JoinSessionRequest;
 import com.tablesync.tablesync.dto.session.response.SessionResponse;
 import com.tablesync.tablesync.service.SessionService;
 import jakarta.validation.Valid;
@@ -26,5 +27,10 @@ public class SessionController {
     @GetMapping("/my-sessions")
     public ResponseEntity<List<SessionResponse>> getMySessions() {
         return ResponseEntity.ok(sessionService.getMySessions());
+    }
+
+    @PostMapping("/join")
+    public ResponseEntity<SessionResponse> joinSession(@RequestBody @Valid JoinSessionRequest request) {
+        return ResponseEntity.ok(sessionService.joinSession(request));
     }
 }
