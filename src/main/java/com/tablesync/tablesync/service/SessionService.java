@@ -56,9 +56,11 @@ public class SessionService {
 
     public List<SessionResponse> getMySessions() {
         User currentUser = getCurrentAuthenticatedUser();
-        return sessionRepository.findByMasterId(currentUser.getId())
-                .stream()
-                .map(SessionResponse::fromEntity)
+
+        List<SessionParticipant> participants = participantRepository.findByUserId(currentUser.getId());
+
+        return participants.stream()
+                .map(participant -> SessionResponse.fromEntity(participant.getSession()))
                 .toList();
     }
 
