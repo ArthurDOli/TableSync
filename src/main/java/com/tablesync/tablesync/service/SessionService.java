@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -66,6 +67,33 @@ public class SessionService {
                 .session(session)
                 .user(master)
                 .role(SessionRole.MASTER)
+                .build();
+
+        participantRepository.save(participant);
+    }
+
+    private GameSession findSessionById(UUID sessionId) {
+        return sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new RuntimeException("Session not found"));
+    }
+
+    private void validateUserNotParticipant(Long userId, UUID sessionId) {
+        if (participantRepository.existsByUserIdAndSessionId(userId, sessionId)) {
+            throw new IllegalArgumentException("User is already a participant of this session");
+        }
+    }
+
+    private void validateSessionPassword(GameSession session, String requestPassword) {
+        if (!session.getPassword().equals(requestPassword)) {
+            throw new IllegalArgumentException("Invalid session password");
+        }
+    }
+
+    private void createAndSavePlayerParticipant(User user, GameSession session) {
+        SessionParticipant participant = SessionParticipant.builder()
+                .user(user)
+                .session(session)
+                .role(SessionRole.PLAYER)
                 .build();
 
         participantRepository.save(participant);
