@@ -13,4 +13,5 @@ public class ApiError {
     private Integer status;
     private String error;
     private List<String> messages;
+    private String path;
 }
