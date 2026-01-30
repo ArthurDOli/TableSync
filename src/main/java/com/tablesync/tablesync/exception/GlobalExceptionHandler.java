@@ -92,4 +92,48 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(apiError);
     }
+
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity<ApiError> handleRuntimeExceptions(
+            RuntimeException ex,
+            WebRequest request
+    ) {
+        if (ex.getMessage() != null && ex.getMessage().toLowerCase().contains("not found")) {
+            ApiError apiError = ApiError.builder()
+                    .timestamp(LocalDateTime.now())
+                    .status(HttpStatus.NOT_FOUND.value())
+                    .error("Resource Not Found")
+                    .messages(List.of(ex.getMessage()))
+                    .path(request.getDescription(false).replace("uri=", ""))
+                    .build();
+
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(apiError);
+        }
+
+        ApiError apiError = ApiError.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                .error("Internal Server Error")
+                .messages(List.of(ex.getMessage() != null ? ex.getMessage() : "An unexpected error occurred"))
+                .path(request.getDescription(false).replace("uri=", ""))
+                .build();
+
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(apiError);
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ApiError> handleGenericException(
+            Exception ex,
+            WebRequest request
+    ) {
+        ApiError apiError = ApiError.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                .error("Internal Server Error")
+                .messages(List.of("An unexpected error occurred"))
+                .path(request.getDescription(false).replace("uri=", ""))
+                .build();
+
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(apiError);
+    }
 }
