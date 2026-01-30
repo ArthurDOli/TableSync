@@ -34,6 +34,8 @@ public class ChatMessageResponse {
                 .content(message.getContent())
                 .messageType(message.getMessageType())
                 .timestamp(message.getTimestamp())
+                .diceFormula(message.getDiceFormula())
+                .rollResult(message.getRollResult())
                 .build();
     }
 }
