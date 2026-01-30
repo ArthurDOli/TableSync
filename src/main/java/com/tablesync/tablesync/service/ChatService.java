@@ -102,7 +102,7 @@ public class ChatService {
         }
 
         String operator = matcher.group(3);
-        appliesModifierInDice(operator, matcher, total);
+        total = applyModifier(operator, matcher, total);
 
         return total;
     }
@@ -119,11 +119,12 @@ public class ChatService {
         }
     }
 
-    private void appliesModifierInDice(String operator, Matcher matcher, int total) {
+    private int applyModifier(String operator, Matcher matcher, int total) {
         if (operator != null) {
             int modifier = Integer.parseInt(matcher.group(4));
-            total = operator.equals("+") ? total + modifier : total - modifier;
+            return operator.equals("+") ? total + modifier : total - modifier;
         }
+        return total;
     }
 
     private void validateDiceType(int diceType) {
