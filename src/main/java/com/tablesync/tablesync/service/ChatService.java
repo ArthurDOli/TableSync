@@ -7,10 +7,7 @@ import com.tablesync.tablesync.entity.GameSession;
 import com.tablesync.tablesync.entity.User;
 import com.tablesync.tablesync.enums.MessageType;
 import com.tablesync.tablesync.exception.ResourceNotFoundException;
-import com.tablesync.tablesync.repository.ChatMessageRepository;
-import com.tablesync.tablesync.repository.GameSessionRepository;
-import com.tablesync.tablesync.repository.SessionParticipantRepository;
-import com.tablesync.tablesync.repository.UserRepository;
+import com.tablesync.tablesync.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -37,6 +34,8 @@ public class ChatService {
     private final SessionParticipantRepository participantRepository;
     private final UserRepository userRepository;
     private final SimpMessagingTemplate messagingTemplate;
+    private final TemplateRepository templateRepository;
+    private final CharacterRepository characterRepository;
 
     private static final Pattern DICE_PATTERN = Pattern.compile("(\\d+)d(\\d+)(?:([+-])(\\d+))?");
     private static final Random random = new Random();
@@ -47,6 +46,8 @@ public class ChatService {
         GameSession session = findSessionById(request.getSessionId());
 
         validateUserIsParticipant(currentUser.getId(), session.getId());
+        validateSessionHasTemplate(session.getId());
+        validateUserHasCharacter(currentUser.getId(), session.getId());
 
         processDiceRolls(request);
 
@@ -54,8 +55,6 @@ public class ChatService {
         ChatMessage savedMessage = chatMessageRepository.save(message);
 
         ChatMessageResponse response = ChatMessageResponse.fromEntity(savedMessage);
-        response.setDiceFormula(response.getDiceFormula());
-        response.setRollResult(request.getRollResult());
 
         broadcastToSession(session.getId(), response);
 
@@ -77,12 +76,47 @@ public class ChatService {
                 .toList();
     }
 
+    private void validateSessionHasTemplate(UUID sessionId) {
+        boolean hasTemplate = templateRepository.existsBySessionId(sessionId);
+
+        if (!hasTemplate) {
+            throw new IllegalArgumentException(
+                    "Session must have at least one character template before allowing chat"
+            );
+        }
+    }
+
+    private void validateUserHasCharacter(Long userId, UUID sessionId) {
+        boolean hasCharacter = characterRepository.existsByUserIdAndSessionId(userId, sessionId);
+
+        if (!hasCharacter) {
+            throw new IllegalArgumentException(
+                    "You must create a character in this session before sending messages"
+            );
+        }
+    }
+
     private void processDiceRolls(ChatMessageRequest request) {
         if (request.getMessageType() == MessageType.DICE_ROLL && request.getDiceFormula() != null) {
-            Integer rollResult = rollDice(request.getDiceFormula());
+            String formula = determineDiceFormula(request);
+            Integer rollResult = rollDice(formula);
+
+            request.setDiceFormula(formula);
             request.setRollResult(rollResult);
-            request.setContent(formatDiceRollMessage(request.getDiceFormula(), rollResult));
+            request.setContent(formatDiceRollMessage(formula, rollResult));
         }
+    }
+
+    private String determineDiceFormula(ChatMessageRequest request) {
+        if (request.getDiceFormula() != null && !request.getDiceFormula().isBlank()) {
+            return request.getDiceFormula().trim();
+        }
+
+        if (request.getContent() != null && !request.getContent().isBlank()) {
+            return request.getContent().trim();
+        }
+
+        throw new IllegalArgumentException("Dice formula is required for DICE_ROLL messages");
     }
 
     private Integer rollDice(String diceFormula) {
