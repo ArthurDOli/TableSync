@@ -30,6 +30,9 @@ public class ChatMessageRequest {
     @Builder.Default
     private MessageType messageType = MessageType.NORMAL;
 
-    private String diceFormula;
-    private Integer rollResult;
+    @Builder.Default
+    private transient String diceFormula = null;
+
+    @Builder.Default
+    private transient Integer rollResult = null;
 }
