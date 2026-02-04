@@ -97,26 +97,14 @@ public class ChatService {
     }
 
     private void processDiceRolls(ChatMessageRequest request) {
-        if (request.getMessageType() == MessageType.DICE_ROLL && request.getDiceFormula() != null) {
-            String formula = determineDiceFormula(request);
+        if (request.getMessageType() == MessageType.DICE_ROLL) {
+            String formula = request.getContent().trim();
             Integer rollResult = rollDice(formula);
 
             request.setDiceFormula(formula);
             request.setRollResult(rollResult);
             request.setContent(formatDiceRollMessage(formula, rollResult));
         }
-    }
-
-    private String determineDiceFormula(ChatMessageRequest request) {
-        if (request.getDiceFormula() != null && !request.getDiceFormula().isBlank()) {
-            return request.getDiceFormula().trim();
-        }
-
-        if (request.getContent() != null && !request.getContent().isBlank()) {
-            return request.getContent().trim();
-        }
-
-        throw new IllegalArgumentException("Dice formula is required for DICE_ROLL messages");
     }
 
     private Integer rollDice(String diceFormula) {
@@ -185,6 +173,8 @@ public class ChatService {
                 .characterName(request.getCharacterName())
                 .content(request.getContent())
                 .messageType(request.getMessageType())
+                .diceFormula(request.getDiceFormula())
+                .rollResult(request.getRollResult())
                 .build();
     }
 
