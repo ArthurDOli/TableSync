@@ -29,7 +29,7 @@ public class ChatMessageResponse {
         return ChatMessageResponse.builder()
                 .id(message.getId())
                 .sessionId(message.getSession().getId())
-                .username(message.getUser().getUsername())
+                .username(message.getUser().getRealUsername())
                 .characterName(message.getCharacterName())
                 .content(message.getContent())
                 .messageType(message.getMessageType())
