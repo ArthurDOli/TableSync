@@ -39,7 +39,7 @@ public class ChatMessage {
 
     @NotBlank(message = "Message can not be null")
     @Size(min = 1, max = 1000, message = "Message must be between 2 and 1000 characters")
-    @Column(nullable = false)
+    @Column(nullable = false, length = 1000)
     private String content;
 
     @CreationTimestamp
@@ -50,4 +50,10 @@ public class ChatMessage {
     @Builder.Default
     @Column(nullable = false)
     private MessageType messageType = MessageType.NORMAL;
+
+    @Column(name = "dice_formula", length = 50)
+    private String diceFormula;
+
+    @Column(name = "roll_result")
+    private Integer rollResult;
 }
