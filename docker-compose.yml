@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: tablesync-postgres
+    environment:
+      POSTGRES_DB: tablesync
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - tablesync-network
+
+  app:
+    build: .
+    container_name: tablesync-app
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/tablesync
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      JWT_SECRET: your-secret-key-here-change-in-production
+      JWT_EXPIRATION: 86400000
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+    networks:
+      - tablesync-network
+
+volumes:
+  postgres_data:
+
+networks:
+  tablesync-network:
+    driver: bridge

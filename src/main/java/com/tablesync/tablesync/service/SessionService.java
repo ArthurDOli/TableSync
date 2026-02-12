@@ -12,8 +12,10 @@ import com.tablesync.tablesync.repository.GameSessionRepository;
 import com.tablesync.tablesync.repository.SessionParticipantRepository;
 import com.tablesync.tablesync.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,10 +24,12 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class SessionService {
     private final GameSessionRepository sessionRepository;
     private final SessionParticipantRepository participantRepository;
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Transactional
     public SessionResponse createSession(CreateSessionRequest request) {
@@ -35,6 +39,8 @@ public class SessionService {
         GameSession savedSession = sessionRepository.saveAndFlush(session);
 
         registerMasterAsParticipant(savedSession, currentUser);
+
+        log.info("Session created: {} by user: {}", savedSession.getId(), currentUser.getUsername());
 
         return SessionResponse.fromEntity(savedSession);
     }
@@ -48,8 +54,11 @@ public class SessionService {
 
         validateUserNotParticipant(currentUser.getId(), sessionId);
         validateSessionPassword(session, request.getPassword());
+        validateSessionIsActive(session);
 
         createAndSavePlayerParticipant(currentUser, session);
+
+        log.info("User {} joined session {}", currentUser.getUsername(), sessionId);
 
         return SessionResponse.fromEntity(session);
     }
@@ -74,7 +83,7 @@ public class SessionService {
         return GameSession.builder()
                 .name(request.getName())
                 .description(request.getDescription())
-                .password(request.getPassword())
+                .password(passwordEncoder.encode(request.getPassword()))
                 .master(master)
                 .status(SessionStatus.ACTIVE)
                 .build();
@@ -102,8 +111,14 @@ public class SessionService {
     }
 
     private void validateSessionPassword(GameSession session, String requestPassword) {
-        if (!session.getPassword().equals(requestPassword)) {
+        if (!passwordEncoder.matches(requestPassword, session.getPassword())) {
             throw new IllegalArgumentException("Invalid session password");
+        }
+    }
+
+    private void validateSessionIsActive(GameSession session) {
+        if (session.getStatus() != SessionStatus.ACTIVE) {
+            throw new IllegalStateException("Session is not active");
         }
     }
 
