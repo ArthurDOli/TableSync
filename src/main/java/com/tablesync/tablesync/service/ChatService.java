@@ -35,7 +35,7 @@ public class ChatService {
     private final UserRepository userRepository;
     private final SimpMessagingTemplate messagingTemplate;
     private final TemplateRepository templateRepository;
-    private final CharacterRepository characterRepository;
+    private final PlayerCharacterRepository characterRepository;
 
     private static final Pattern DICE_PATTERN = Pattern.compile("(\\d+)d(\\d+)(?:([+-])(\\d+))?");
     private static final Random random = new Random();

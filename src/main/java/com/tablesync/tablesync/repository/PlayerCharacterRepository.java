@@ -12,4 +12,6 @@ import java.util.UUID;
 public interface PlayerCharacterRepository extends JpaRepository<PlayerCharacter, UUID> {
     @EntityGraph(attributePaths = {"session", "user"})
     List<PlayerCharacter> findBySessionId(UUID sessionId);
+
+    boolean existsByUserIdAndSessionId(Long userId, UUID sessionId);
 }
