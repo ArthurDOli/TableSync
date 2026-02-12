@@ -131,7 +131,7 @@ public class GlobalExceptionHandler {
             BadCredentialsException ex,
             WebRequest request
     ) {
-        log.error("Bad credentials: {}", ex.getMessage());
+        log.error("Bad credentials for request to: {}", request.getDescription(false));
 
         ApiError error = ApiError.builder()
                 .timestamp(LocalDateTime.now())
@@ -149,7 +149,7 @@ public class GlobalExceptionHandler {
             IllegalStateException ex,
             WebRequest request
     ) {
-        log.error("Illegal state: {}", ex.getMessage());
+        log.error("Illegal state: {}", ex.getMessage(), ex);
 
         ApiError error = ApiError.builder()
                 .timestamp(LocalDateTime.now())
@@ -167,7 +167,8 @@ public class GlobalExceptionHandler {
             Exception ex,
             WebRequest request
     ) {
-        log.error("Unexpected error occurred", ex);
+        log.error("Unexpected error occurred at {}: {}",
+                request.getDescription(false), ex.getMessage(), ex);
 
         ApiError error = ApiError.builder()
                 .timestamp(LocalDateTime.now())

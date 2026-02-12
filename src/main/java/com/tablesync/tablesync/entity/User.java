@@ -30,7 +30,7 @@ public class User implements UserDetails {
     private Long id;
 
     @NotBlank(message = "Name is required")
-    @Size(min = 2, max = 30, message = "Username must be between 2 and 30 characters")
+    @Size(min = 2, max = 50, message = "Username must be between 2 and 30 characters")
     @Column(unique = true)
     private String username;
 
