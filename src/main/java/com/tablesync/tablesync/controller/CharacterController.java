@@ -110,4 +110,32 @@ public class CharacterController {
         CharacterResponse character = characterService.updateCharacter(id, request);
         return ResponseEntity.ok(character);
     }
+
+    @PatchMapping("/{id}")
+    @Operation(
+            summary = "Partial update character",
+            description = "Partially update character fields"
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Character updated successfully",
+                    content = @Content(schema = @Schema(implementation = CharacterController.class))
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Not authorized to update this character"
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Character not found"
+            )
+    })
+    public ResponseEntity<CharacterResponse> partialUpdateCharacter(
+            @PathVariable UUID id,
+            @RequestBody @Valid UpdateCharacterRequest request
+    ) {
+        CharacterResponse character = characterService.partialUpdateCharacter(id, request);
+        return ResponseEntity.ok(character);
+    }
 }
