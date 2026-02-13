@@ -2,7 +2,10 @@ package com.tablesync.tablesync.controller;
 
 import com.tablesync.tablesync.dto.session.request.CreateSessionRequest;
 import com.tablesync.tablesync.dto.session.request.JoinSessionRequest;
+import com.tablesync.tablesync.dto.session.request.UpdateSessionRequest;
+import com.tablesync.tablesync.dto.session.response.SessionDetailResponse;
 import com.tablesync.tablesync.dto.session.response.SessionResponse;
+import com.tablesync.tablesync.enums.SessionStatus;
 import com.tablesync.tablesync.service.SessionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -17,6 +20,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/sessions")
@@ -88,6 +92,83 @@ public class SessionController {
     })
     public ResponseEntity<SessionResponse> joinSession(@RequestBody @Valid JoinSessionRequest request) {
         SessionResponse response = sessionService.joinSession(request);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{id}")
+    @Operation(
+            summary = "Get session details",
+            description = "Retrieve detailed information about a specific session"
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Session found",
+                    content = @Content(schema = @Schema(implementation = SessionDetailResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Session not found"
+            )
+    })
+    public ResponseEntity<SessionDetailResponse> getSessionById(@PathVariable UUID id) {
+        SessionDetailResponse session = sessionService.getSessionById(id);
+        return ResponseEntity.ok(session);
+    }
+
+    @PutMapping("/{id}")
+    @Operation(
+            summary = "Update session",
+            description = "Update session details (only master can update)"
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Session updated successfully",
+                    content = @Content(schema = @Schema(implementation = SessionResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Only master can update session"
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Session not found"
+            )
+    })
+    public ResponseEntity<SessionResponse> updateSession(
+            @PathVariable UUID id,
+            @RequestBody @Valid UpdateSessionRequest request
+            ) {
+        SessionResponse session = sessionService.updateSession(id, request);
+        return ResponseEntity.ok(session);
+    }
+
+    @PatchMapping("/{id}/status")
+    @Operation(
+            summary = "Update session status",
+            description = "Activate or deactivate a session (only master can update)"
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Session status updated successfully",
+                    content = @Content(schema = @Schema(implementation = SessionResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Only master can update session status"
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Session not found"
+            )
+    })
+    public ResponseEntity<SessionResponse> updateSessionStatus(
+            @PathVariable UUID id,
+            @RequestParam SessionStatus status
+    ) {
+        SessionResponse response = sessionService.updateSessionStatus(id, status);
         return ResponseEntity.ok(response);
     }
 }
