@@ -8,6 +8,8 @@ import com.tablesync.tablesync.entity.SessionParticipant;
 import com.tablesync.tablesync.entity.User;
 import com.tablesync.tablesync.enums.SessionRole;
 import com.tablesync.tablesync.enums.SessionStatus;
+import com.tablesync.tablesync.exception.ForbiddenException;
+import com.tablesync.tablesync.exception.ResourceNotFoundException;
 import com.tablesync.tablesync.repository.GameSessionRepository;
 import com.tablesync.tablesync.repository.SessionParticipantRepository;
 import com.tablesync.tablesync.repository.UserRepository;
@@ -73,6 +75,16 @@ public class SessionService {
                 .toList();
     }
 
+    private void validateMasterPermission(GameSession session) {
+        User currentUser = getCurrentAuthenticatedUser();
+
+        if (!session.getMaster().getId().equals(currentUser.getId())) {
+            log.warn("User {} attempted to modify session {} owned by user {}",
+                    currentUser.getId(), session.getId(), session.getMaster().getId());
+            throw new ForbiddenException("Only the session master can perform this action");
+        }
+    }
+
     private User getCurrentAuthenticatedUser() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         return userRepository.findByEmail(email)
@@ -101,7 +113,7 @@ public class SessionService {
 
     private GameSession findSessionById(UUID sessionId) {
         return sessionRepository.findById(sessionId)
-                .orElseThrow(() -> new RuntimeException("Session not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Session", "id", sessionId));
     }
 
     private void validateUserNotParticipant(Long userId, UUID sessionId) {
@@ -112,6 +124,7 @@ public class SessionService {
 
     private void validateSessionPassword(GameSession session, String requestPassword) {
         if (!passwordEncoder.matches(requestPassword, session.getPassword())) {
+            log.warn("Invalid password attempt for session: {}", session.getId());
             throw new IllegalArgumentException("Invalid session password");
         }
     }
