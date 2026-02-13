@@ -38,6 +38,8 @@ public class TemplateService {
 
     @Transactional
     public TemplateResponse createTemplate(CreateTemplateRequest request) {
+        log.info("Creating template: {} for session {}", request.getName(), request.getSessionId());
+
         User currentUser = getCurrentAuthenticatedUser();
         GameSession session = findSessionById(request.getSessionId());
 
@@ -46,14 +48,36 @@ public class TemplateService {
         CharacterTemplate template = buildTemplateEntity(request, session);
         CharacterTemplate savedTemplate = templateRepository.save(template);
 
+        log.info("Template created successfully: {}", savedTemplate.getId());
         return TemplateResponse.fromEntity(savedTemplate, objectMapper);
     }
 
+    @Transactional(readOnly = true)
+    public TemplateResponse getTemplateById(UUID templateId) {
+        CharacterTemplate template = findTemplateById(templateId);
+        return TemplateResponse.fromEntity(template, objectMapper);
+    }
+
+    @Transactional(readOnly = true)
     public List<TemplateResponse> listTemplatesBySession(UUID sessionId) {
         return templateRepository.findBySessionId(sessionId)
                 .stream()
                 .map(t -> TemplateResponse.fromEntity(t, objectMapper))
                 .toList();
+    }
+
+    @Transactional
+    public TemplateResponse updateTemplate(UUID templateId, UpdateTemplateRequest request) {
+        log.info("Updating template: {}", templateId);
+
+        CharacterTemplate template = findTemplateById(templateId);
+        validateUserIsMaster(template.getSession(), getCurrentAuthenticatedUser());
+
+        updateTemplateFields(template, request);
+        CharacterTemplate updatedTemplate = templateRepository.save(template);
+
+        log.info("Template updated successfully: {}", templateId);
+        return TemplateResponse.fromEntity(updatedTemplate, objectMapper);
     }
 
     @Transactional
