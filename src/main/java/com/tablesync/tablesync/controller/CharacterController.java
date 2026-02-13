@@ -52,7 +52,7 @@ public class CharacterController {
             @ApiResponse(
                     responseCode = "200",
                     description = "Character found",
-                    content = @Content(schema = @Schema(implementation = CharacterController.class))
+                    content = @Content(schema = @Schema(implementation = CharacterResponse.class))
             ),
             @ApiResponse(
                     responseCode = "404",
@@ -92,7 +92,7 @@ public class CharacterController {
             @ApiResponse(
                     responseCode = "200",
                     description = "Character updated successfully",
-                    content = @Content(schema = @Schema(implementation = CharacterController.class))
+                    content = @Content(schema = @Schema(implementation = CharacterResponse.class))
             ),
             @ApiResponse(
                     responseCode = "403",
@@ -120,7 +120,7 @@ public class CharacterController {
             @ApiResponse(
                     responseCode = "200",
                     description = "Character updated successfully",
-                    content = @Content(schema = @Schema(implementation = CharacterController.class))
+                    content = @Content(schema = @Schema(implementation = CharacterResponse.class))
             ),
             @ApiResponse(
                     responseCode = "403",
