@@ -1,6 +1,7 @@
 package com.tablesync.tablesync.controller;
 
 import com.tablesync.tablesync.dto.template.request.CreateTemplateRequest;
+import com.tablesync.tablesync.dto.template.request.UpdateTemplateRequest;
 import com.tablesync.tablesync.dto.template.response.TemplateResponse;
 import com.tablesync.tablesync.service.TemplateService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -96,5 +97,59 @@ public class TemplateController {
     ) {
         TemplateResponse template = templateService.getTemplateById(id);
         return ResponseEntity.ok(template);
+    }
+
+    @PutMapping("/{id}")
+    @Operation(
+            summary = "Update template",
+            description = "Update an existing template (only session master)"
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Template updated successfully",
+                    content = @Content(schema = @Schema(implementation = TemplateResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Template not found"
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Only master can update templates"
+            )
+    })
+    public ResponseEntity<TemplateResponse> updateTemplate(
+            @PathVariable UUID id,
+            @RequestBody UpdateTemplateRequest request
+    ) {
+        TemplateResponse template = templateService.updateTemplate(id, request);
+        return ResponseEntity.ok(template);
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation(
+            summary = "Delete template",
+            description = "Delete a template (only session master, cannot delete if in use)"
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "204",
+                    description = "Template deleted successfully"),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Only master can delete templates"),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Template not found"),
+            @ApiResponse(
+                    responseCode = "409",
+                    description = "Template is in use by characters")
+    })
+    public ResponseEntity<Void> deleteTemplate(
+            @PathVariable UUID id
+    ) {
+        templateService.deleteTemplate(id);
+        return ResponseEntity.noContent().build();
     }
 }
