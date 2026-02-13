@@ -138,4 +138,28 @@ public class CharacterController {
         CharacterResponse character = characterService.partialUpdateCharacter(id, request);
         return ResponseEntity.ok(character);
     }
+
+    @DeleteMapping("/{id}")
+    @Operation(
+            summary = "Delete character",
+            description = "Delete a character from the system"
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "204",
+                    description = "Character deleted successfully"
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Not authorized to delete this character"
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Character not found"
+            )
+    })
+    public ResponseEntity<Void> deleteCharacter(UUID characterId) {
+        characterService.deleteCharacter(characterId);
+        return ResponseEntity.noContent().build();
+    }
 }
