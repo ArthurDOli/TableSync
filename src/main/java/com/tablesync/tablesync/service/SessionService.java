@@ -2,6 +2,7 @@ package com.tablesync.tablesync.service;
 
 import com.tablesync.tablesync.dto.session.request.CreateSessionRequest;
 import com.tablesync.tablesync.dto.session.request.JoinSessionRequest;
+import com.tablesync.tablesync.dto.session.request.UpdateSessionRequest;
 import com.tablesync.tablesync.dto.session.response.SessionResponse;
 import com.tablesync.tablesync.entity.GameSession;
 import com.tablesync.tablesync.entity.SessionParticipant;
@@ -73,6 +74,20 @@ public class SessionService {
         return participants.stream()
                 .map(participant -> SessionResponse.fromEntity(participant.getSession()))
                 .toList();
+    }
+
+    private void updateSessionFields(GameSession session, UpdateSessionRequest request) {
+        if (request.getName() != null) {
+            session.setName(request.getName());
+        }
+
+        if (request.getDescription() != null) {
+            session.setDescription(request.getDescription());
+        }
+
+        if (request.getBackgroundImageUrl() != null) {
+            session.setBackgroundImageUrl(request.getBackgroundImageUrl());
+        }
     }
 
     private void validateMasterPermission(GameSession session) {
