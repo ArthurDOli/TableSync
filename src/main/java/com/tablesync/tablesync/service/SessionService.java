@@ -77,6 +77,48 @@ public class SessionService {
     }
 
     @Transactional
+    public SessionResponse updateSession(UUID sessionId, UpdateSessionRequest request) {
+        log.info("Updating session {}", sessionId);
+
+        GameSession session = findSessionById(sessionId);
+        validateMasterPermission(session);
+
+        updateSessionFields(session, request);
+        GameSession updatedSession = sessionRepository.save(session);
+
+        log.info("Session updated successfully: {}", sessionId);
+        return SessionResponse.fromEntity(updatedSession);
+    }
+
+    @Transactional
+    public SessionResponse updateSessionStatus(UUID sessionId, SessionStatus status) {
+        log.info("Updating session {} status to {}", sessionId, status);
+
+        GameSession session = findSessionById(sessionId);
+        validateMasterPermission(session);
+
+        session.setStatus(status);
+        GameSession updatedSession = sessionRepository.save(session);
+
+        log.info("Session status updated successfully: {}", sessionId);
+        return SessionResponse.fromEntity(updatedSession);
+    }
+
+    @Transactional
+    public SessionResponse updateBackgroundImage(UUID sessionId, String backgroundUrl) {
+        log.info("Updating background for session: {}", sessionId);
+
+        GameSession session = findSessionById(sessionId);
+        validateMasterPermission(session);
+
+        session.setBackgroundImageUrl(backgroundUrl);
+        GameSession updatedSession = sessionRepository.save(session);
+
+        log.info("Background updated successfully: {}", sessionId);
+        return SessionResponse.fromEntity(updatedSession);
+    }
+
+    @Transactional
     public void deleteSession(UUID sessionId) {
         log.info("Deleting session: {}", sessionId);
 
