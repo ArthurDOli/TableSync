@@ -3,6 +3,8 @@ package com.tablesync.tablesync.service;
 import com.tablesync.tablesync.dto.session.request.CreateSessionRequest;
 import com.tablesync.tablesync.dto.session.request.JoinSessionRequest;
 import com.tablesync.tablesync.dto.session.request.UpdateSessionRequest;
+import com.tablesync.tablesync.dto.session.response.ParticipantResponse;
+import com.tablesync.tablesync.dto.session.response.SessionDetailResponse;
 import com.tablesync.tablesync.dto.session.response.SessionResponse;
 import com.tablesync.tablesync.entity.GameSession;
 import com.tablesync.tablesync.entity.SessionParticipant;
@@ -11,9 +13,7 @@ import com.tablesync.tablesync.enums.SessionRole;
 import com.tablesync.tablesync.enums.SessionStatus;
 import com.tablesync.tablesync.exception.ForbiddenException;
 import com.tablesync.tablesync.exception.ResourceNotFoundException;
-import com.tablesync.tablesync.repository.GameSessionRepository;
-import com.tablesync.tablesync.repository.SessionParticipantRepository;
-import com.tablesync.tablesync.repository.UserRepository;
+import com.tablesync.tablesync.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -33,6 +33,8 @@ public class SessionService {
     private final SessionParticipantRepository participantRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final PlayerCharacterRepository characterRepository;
+    private final CharacterTemplateRepository characterTemplateRepository;
 
     @Transactional
     public SessionResponse createSession(CreateSessionRequest request) {
@@ -66,6 +68,22 @@ public class SessionService {
         return SessionResponse.fromEntity(session);
     }
 
+    @Transactional(readOnly = true)
+    public SessionDetailResponse getSessionById(UUID sessionId) {
+        GameSession session = findSessionById(sessionId);
+
+        List<SessionParticipant> participants = participantRepository.findBySessionId(sessionId);
+        List<ParticipantResponse> participantResponses = participants.stream()
+                .map(ParticipantResponse::fromEntity)
+                .toList();
+
+        Integer totalCharacters = characterRepository.findBySessionId(sessionId).size();
+        Integer totalTemplates = characterTemplateRepository.findBySessionId(sessionId).size();
+
+        return SessionDetailResponse.fromEntity(session, participantResponses, totalCharacters, totalTemplates);
+    }
+
+    @Transactional(readOnly = true)
     public List<SessionResponse> getMySessions() {
         User currentUser = getCurrentAuthenticatedUser();
 
