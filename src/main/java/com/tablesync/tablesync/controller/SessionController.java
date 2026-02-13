@@ -171,4 +171,73 @@ public class SessionController {
         SessionResponse response = sessionService.updateSessionStatus(id, status);
         return ResponseEntity.ok(response);
     }
+
+    @PatchMapping("/{id}/background")
+    @Operation(
+            summary = "Update session background",
+            description = "Update the background image URL for the tabletop (only master can update)"
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Background updated successfully",
+                    content = @Content(schema = @Schema(implementation = SessionResponse.class))
+            ),
+            @ApiResponse(responseCode = "404", description = "Session not found"),
+            @ApiResponse(responseCode = "403", description = "Only master can update background")
+    })
+    public ResponseEntity<SessionResponse> updateBackgroundImage(
+            @PathVariable UUID id,
+            @RequestParam String url
+    ) {
+        SessionResponse response = sessionService.updateBackgroundImage(id, url);
+        return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation(
+            summary = "Delete session",
+            description = "Delete a session (only master can delete)"
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "204",
+                    description = "Session deleted successfully"),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Session not found"),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Only master can delete session")
+    })
+    public ResponseEntity<Void> deleteSession(
+            @PathVariable UUID id
+    ) {
+        sessionService.deleteSession(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/{sessionId}/participants/{userId}")
+    @Operation(
+            summary = "Remove participant",
+            description = "Remove a participant from the session (only master can remove)"
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "204",
+                    description = "Participant removed successfully"),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Session or participant not found"),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Only master can remove participants")
+    })
+    public ResponseEntity<Void> removeParticipant(
+            @PathVariable UUID sessionId,
+            @PathVariable Long userId
+    ) {
+        sessionService.removeParticipant(sessionId, userId);
+        return ResponseEntity.noContent().build();
+    }
 }
