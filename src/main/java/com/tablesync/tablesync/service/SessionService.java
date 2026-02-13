@@ -76,6 +76,31 @@ public class SessionService {
                 .toList();
     }
 
+    @Transactional
+    public void deleteSession(UUID sessionId) {
+        log.info("Deleting session: {}", sessionId);
+
+        GameSession session = findSessionById(sessionId);
+        validateMasterPermission(session);
+
+        sessionRepository.delete(session);
+        log.info("Session deleted successfully: {}", sessionId);
+    }
+
+    @Transactional
+    public void removeParticipant(UUID sessionId, Long userId) {
+        log.info("Removing participant {} from session {}", userId, sessionId);
+
+        GameSession session = findSessionById(sessionId);
+        validateMasterPermission(session);
+
+        SessionParticipant participant = findParticipantById(userId, sessionId);
+        validateParticipantIsNotMaster(participant);
+
+        participantRepository.delete(participant);
+        log.info("Participant removed successfully");
+    }
+
     private void updateSessionFields(GameSession session, UpdateSessionRequest request) {
         if (request.getName() != null) {
             session.setName(request.getName());
@@ -97,6 +122,12 @@ public class SessionService {
             log.warn("User {} attempted to modify session {} owned by user {}",
                     currentUser.getId(), session.getId(), session.getMaster().getId());
             throw new ForbiddenException("Only the session master can perform this action");
+        }
+    }
+
+    private void validateParticipantIsNotMaster(SessionParticipant participant) {
+        if (participant.getRole() == SessionRole.MASTER) {
+            throw new IllegalArgumentException("Cannot remove the session master");
         }
     }
 
@@ -129,6 +160,11 @@ public class SessionService {
     private GameSession findSessionById(UUID sessionId) {
         return sessionRepository.findById(sessionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Session", "id", sessionId));
+    }
+
+    private SessionParticipant findParticipantById(Long userId, UUID sessionId) {
+        return participantRepository.findByUserIdAndSessionId(userId, sessionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Participant not found"));
     }
 
     private void validateUserNotParticipant(Long userId, UUID sessionId) {
