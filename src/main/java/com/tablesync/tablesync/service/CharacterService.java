@@ -33,6 +33,8 @@ public class CharacterService {
 
     @Transactional
     public CharacterResponse createCharacter(CharacterRequest request) {
+        log.info("Creating character: {} in session: {}", request.getName(), request.getSessionId());
+
         User currentUser = getCurrentAuthenticatedUser();
         GameSession session = findSessionById(request.getSessionId());
 
@@ -48,14 +50,29 @@ public class CharacterService {
         PlayerCharacter character = buildCharacterEntity(request, session, currentUser, template);
         PlayerCharacter savedCharacter = characterRepository.save(character);
 
+        log.info("Character created successfully: {}", savedCharacter.getId());
         return CharacterResponse.fromEntity(savedCharacter, objectMapper);
     }
 
+    @Transactional(readOnly = true)
+    public CharacterResponse getCharacterById(UUID characterId) {
+        log.info("Fetching character by id: {}", characterId);
+
+        PlayerCharacter character = characterRepository.findById(characterId)
+                .orElseThrow(() -> new ResourceNotFoundException("Character", "id", characterId));
+
+        return CharacterResponse.fromEntity(character, objectMapper);
+    }
+
+    @Transactional(readOnly = true)
     public List<CharacterResponse> getCharactersBySession(UUID sessionId) {
+        log.info("Fetching characters for session: {}", sessionId);
+
         validateSessionExistsById(sessionId);
 
-        return characterRepository.findBySessionId(sessionId)
-                .stream()
+        List<PlayerCharacter> characters = characterRepository.findBySessionId(sessionId);
+
+        return characters.stream()
                 .map(c -> CharacterResponse.fromEntity(c, objectMapper))
                 .toList();
     }
@@ -73,6 +90,21 @@ public class CharacterService {
 
         log.info("Character updated successfully: {}", characterId);
 
+        return CharacterResponse.fromEntity(updatedCharacter, objectMapper);
+    }
+
+    @Transactional
+    public CharacterResponse partialUpdateCharacter(UUID characterId, UpdateCharacterRequest request) {
+        log.info("Partially updating character {}", characterId);
+
+        PlayerCharacter character = findCharacterById(characterId);
+
+        validateCharacterOwnership(character);
+
+        updateCharacterFieldsPartially(character, request);
+        PlayerCharacter updatedCharacter = characterRepository.save(character);
+
+        log.info("Character partially updated: {}", updatedCharacter);
         return CharacterResponse.fromEntity(updatedCharacter, objectMapper);
     }
 
