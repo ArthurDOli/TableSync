@@ -74,7 +74,7 @@ export function Dashboard() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {sessions.map(session => (
                     <div key={session.id} className="bg-zinc-800 p-4 rounded-lg">
-                        <h2 className="text-xl font-bold text-blue-400">{session.name}</h2>
+                        <h2 className="text-xl font-bold text-blue-400">{session.name} - {session.id}</h2>
                         <p className="text-zinc-400">{session.description}</p>
                     </div>
                 ))}
