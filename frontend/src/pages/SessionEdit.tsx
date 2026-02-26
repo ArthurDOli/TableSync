@@ -40,7 +40,7 @@ export function SessionEdit() {
         })
 
         try {
-            const response = await api.post("/templates", {
+            await api.post("/templates", {
                 sessionId: id,
                 name: templateName,
                 schema: schemaObject
