@@ -7,6 +7,7 @@ import { SessionCreate } from "./pages/SessionCreate";
 import { SessionPlay } from "./pages/SessionPlay";
 import { Session } from "./pages/session";
 import { PrivateRoute } from "./components/PrivateRoute";
+import { PublicRoute } from "./components/PublicRoute";
 
 function App() {
   return (
@@ -14,8 +15,12 @@ function App() {
       <Routes>
         <Route path="/" element={<Navigate to="/login" replace />} />
 
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
+        <Route path="/login" element={
+          <PublicRoute><Login /></PublicRoute>
+        } />
+        <Route path="/register" element={
+          <PublicRoute><Register /></PublicRoute>
+        } />
 
         <Route path="/dashboard" element={
           <PrivateRoute><Dashboard /></PrivateRoute>

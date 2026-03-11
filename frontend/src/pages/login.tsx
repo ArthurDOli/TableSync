@@ -66,6 +66,8 @@ export function Login() {
                     Enter
                 </button>
 
+                <p>Don't have an account? <a href="/register">Create one here!</a></p>
+
             </form>
         </div>
     );
