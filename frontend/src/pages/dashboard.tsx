@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../services/api";
+import { useNavigate } from "react-router-dom";
 
 type Session = {
     id: string;
@@ -11,10 +12,22 @@ type Session = {
 export function Dashboard() {
     const [sessions, setSessions] = useState<Session[]>([]);
     const [sessionName, setSessionName] = useState('');
+
     const [description, setDescription] = useState('');
+
     const [createPassword, setCreatePassword] = useState('');
     const [enterPassword, setEnterPassword] = useState('');
+
     const [sessionId, setSessionId] = useState('');
+
+    const navigate = useNavigate();
+
+    function handleLogout() {
+        localStorage.removeItem('token');
+        localStorage.removeItem('userId');
+        localStorage.removeItem('username');
+        navigate('/login');
+    }
 
     async function handleSessionCreation(e: React.FormEvent) {
         e.preventDefault();
@@ -70,6 +83,12 @@ export function Dashboard() {
     return (
         <div className="min-h-screen bg-zinc-900 text-white p-8">
             <h1 className="text-3xl font-bold mb-8">My Sessions</h1>
+
+            <button
+            onClick={handleLogout}
+            className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded font-bold transition-colors">
+                Logout
+            </button>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {sessions.map(session => (
