@@ -6,6 +6,7 @@ import { SessionEdit } from "./pages/SessionEdit";
 import { SessionCreate } from "./pages/SessionCreate";
 import { SessionPlay } from "./pages/SessionPlay";
 import { Session } from "./pages/session";
+import { PrivateRoute } from "./components/PrivateRoute";
 
 function App() {
   return (
@@ -15,11 +16,23 @@ function App() {
 
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/session/:id" element={<Session />} />
-        <Route path="/session/:id/edit" element={<SessionEdit />} />
-        <Route path="/session/:id/create" element={<SessionCreate />} />
-        <Route path="/session/:id/play" element={<SessionPlay />} />
+
+        <Route path="/dashboard" element={
+          <PrivateRoute><Dashboard /></PrivateRoute>
+        } />
+
+        <Route path="/session/:id" element={
+          <PrivateRoute><Session /></PrivateRoute>
+        } />
+        <Route path="/session/:id/edit" element={
+          <PrivateRoute><SessionEdit /></PrivateRoute>
+        } />
+        <Route path="/session/:id/create" element={
+          <PrivateRoute><SessionCreate /></PrivateRoute>
+        } />
+        <Route path="/session/:id/play" element={
+          <PrivateRoute><SessionPlay /></PrivateRoute>
+        } />
       </Routes>
     </BrowserRouter>
   );
