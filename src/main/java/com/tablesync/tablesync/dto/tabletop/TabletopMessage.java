@@ -1,0 +1,14 @@
+package com.tablesync.tablesync.dto.tabletop;
+
+import lombok.Data;
+
+@Data
+public class TabletopMessage {
+    private String sessionId;
+    private String type;
+    private String characterId;
+    private Double x;
+    private Double y;
+    private String imageUrl;
+    private String senderUsername;
+}
