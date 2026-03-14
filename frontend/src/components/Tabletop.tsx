@@ -146,7 +146,7 @@ export function Tabletop({ sessionId, isMaster, characters, stompClient, isConne
                 <div className="flex gap-2 p-2 bg-zinc-950 border-b border-zinc-700 shrink-0">
                     <input
                         type="text"
-                        placeholder="URL da imagem de fundo..."
+                        placeholder="Background image URL..."
                         value={inputUrl}
                         onChange={e => setInputUrl(e.target.value)}
                         className="flex-1 p-1 rounded bg-zinc-800 text-white text-sm outline-none focus:ring-1 focus:ring-yellow-500"
@@ -155,7 +155,7 @@ export function Tabletop({ sessionId, isMaster, characters, stompClient, isConne
                         onClick={handleSetBackground}
                         className="bg-yellow-600 hover:bg-yellow-700 px-3 py-1 rounded text-sm font-bold"
                     >
-                        Definir Fundo
+                        Set Background
                     </button>
                     {backgroundUrl && (
                         <button
@@ -170,7 +170,7 @@ export function Tabletop({ sessionId, isMaster, characters, stompClient, isConne
                             }}
                             className="bg-zinc-700 hover:bg-zinc-600 px-3 py-1 rounded text-sm"
                         >
-                            Limpar
+                            Clear
                         </button>
                     )}
                 </div>
