@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../services/api";
+import { Button } from "@/components/ui/button";
 
 export function Register() {
     const [email, setEmail] = useState('');
@@ -30,58 +31,72 @@ export function Register() {
     }
 
     return (
-        <div className="flex items-center justify-center h-screen bg-zinc-900 text-white">
+        <div className="flex items-center justify-center min-h-screen 
+            bg-black bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] 
+            bg-[size:128px_128px] text-white">
             
-            <form
-                onSubmit={handleRegister}
-                className="flex flex-col gap-4 bg-zinc-800 p-8 rounded-lg shadow-lg w-96"
-            >
-                <h1 className="text-3xl font-bold">TableSync - Register Page</h1>
-
-                <div>
-                    <label className="block mb-1 text-sm text-zinc-400">Username</label>
-                    <input
-                        type="text"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
-                        className="w-full p-2 rounded bg-zinc-700 text-white outline-none focus:ring-2 focus:ring-blue-500"
-                        required
-                    />
-                </div>
-
-                <div>
-                    <label className="block mb-1 text-sm text-zinc-400">Email</label>
-                    <input
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className="w-full p-2 rounded bg-zinc-700 text-white outline-none focus:ring-2 focus:ring-blue-500"
-                        required
-                    />
-                </div>
-
-                <div>
-                    <label className="block mb-1 text-sm text-zinc-400">Password</label>
-                    <input
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="w-full p-2 rounded bg-zinc-700 text-white outline-none focus:ring-2 focus:ring-blue-500"
-                        required
-                    />
-                </div>
-
-                <button
-                    type="submit"
-                    className="mt-4 bg-blue-600 hover:bg-blue-700 p-2 rounded font-bold transition-colors"
+            <div className="flex w-full flex-col justify-center items-center lg:w-1/2 px-4">
+                <form
+                    onSubmit={handleRegister}
+                    className="flex flex-col gap-4 bg-[rgb(5,5,6)] border border-zinc-800 p-8 rounded-xl shadow-2xl w-full max-w-md"
                 >
-                    Enter
-                </button>
-                
-                <p>Already has an account? <a href="/login">Login here!</a></p>
+                    <h1 className="text-3xl font-bold">Register</h1>
+                    <p className="text-zinc-400 text-sm mb-4">Create your account to enter the table</p>
 
-            </form>
+                    <div>
+                        <label className="block mb-1 text-sm text-zinc-400">Username</label>
+                        <input
+                            type="text"
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
+                            className="w-full p-2 rounded bg-zinc-700 text-white outline-none focus:ring-2 focus:ring-blue-500"
+                            required
+                        />
+                    </div>
 
+                    <div>
+                        <label className="block mb-1 text-sm text-zinc-400">Email</label>
+                        <input
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            className="w-full p-2 rounded bg-zinc-700 text-white outline-none focus:ring-2 focus:ring-blue-500"
+                            required
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block mb-1 text-sm text-zinc-400">Password</label>
+                        <input
+                            type="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            className="w-full p-2 rounded bg-zinc-700 text-white outline-none focus:ring-2 focus:ring-blue-500"
+                            required
+                        />
+                    </div>
+
+                    <Button
+                        type="submit"
+                        className="mt-4 font-bold w-full"
+                    >
+                        Enter
+                    </Button>
+                    
+                    <p className="text-center text-sm text-zinc-400 mt-2">
+                        Already has an account? <a href="/login" className="text-white hover:underline">Login here!</a>
+                    </p>
+
+                </form>
+            </div>
+
+            <div className="hidden lg:flex w-1/2 items-center justify-center p-8">
+                <div className="text-center">
+                    <h2 className="text-2xl font-bold text-zinc-400 border border-zinc-800 lg-[rgb(5,5,6)] p-6 rounded-xl">
+                        Placeholder
+                    </h2>
+                </div>
+            </div>
         </div>
     );
 }
