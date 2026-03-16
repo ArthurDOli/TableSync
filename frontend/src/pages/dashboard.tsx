@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../services/api";
 import { useNavigate } from "react-router-dom";
-import { Layers3, LogOut, Plus, LogIn, Lock } from "lucide-react";
+import { Layers3, LogOut, Plus, LogIn, Lock, Check, Copy, Ghost } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
@@ -24,6 +24,8 @@ export function Dashboard() {
 
     const [sessionId, setSessionId] = useState('');
 
+    const [copiedId, setCopiedId] = useState<string | null>(null);
+
     const navigate = useNavigate();
 
     function handleLogout() {
@@ -31,6 +33,12 @@ export function Dashboard() {
         localStorage.removeItem('userId');
         localStorage.removeItem('username');
         navigate('/login');
+    }
+
+    function handleCopy(id: string) {
+        navigator.clipboard.writeText(id);
+        setCopiedId(id);
+        setTimeout(() => setCopiedId(null), 1500);
     }
 
     async function handleSessionCreation(e: React.FormEvent) {
@@ -59,17 +67,19 @@ export function Dashboard() {
 
         try {
             const response = await api.post('/sessions/join', {
-            sessionId: sessionId,
-            password: enterPassword,
+                sessionId: sessionId,
+                password: enterPassword,
         });
 
-        setSessions(prev => [...prev, response.data]);
+        if (!sessions.find(s => s.id === response.data.id)) {
+            setSessions(prev => [...prev, response.data]);
+        }
 
         setSessionId('');
         setEnterPassword('');
         } catch (error) {
-        console.error("Error entering session", error);
-        alert("Failed to enter session. Please check your inputs");
+            console.error("Error entering session", error);
+            alert("Failed to enter session. Please check your inputs");
         }
     }
 
@@ -236,99 +246,78 @@ export function Dashboard() {
                             </Button>
                     </form>
                 </div>
+
+                <hr className="border-zinc-800 my-4" />
+
+                <div>
+                    <h2 className="text-2xl font-bold mb-8">
+                        My Sessions
+                    </h2>
+
+                    {sessions.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-20 bg-[rgb(5,5,6)] border border-dashed
+                            border-zinc-700 rounded-xl">
+                            <Ghost className="text-zinc-600 mb-4" size={64}/>
+                            <h3 className="text-xl font-bold text-zinc-300 mb-2">
+                                No sessions yet
+                            </h3>
+                            <p className="text-zinc-500 text-sm max-w-sm text-center">
+                                You haven't created or joined any sessions. Use the forms above to start your journey.
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                            {sessions.map(session => (
+                                <div 
+                                    key={session.id} 
+                                    className="group flex flex-col justify-between bg-[rgb(5,5,6)] border border-zinc-800 p-6 rounded-xl 
+                                    transition-all duration-300 
+                                    hover:-translate-y-2 
+                                    hover:shadow-[0_0_30px_rgba(255,255,255,0.05)] 
+                                    hover:border-zinc-700 
+                                    h-[200px]"
+                                >
+                                    <div>
+                                        <h3 className="text-xl font-bold text-white mb-2 line-clamp-1" title={session.name}>
+                                            {session.name}
+                                        </h3>
+                                        <p className="text-sm text-zinc-400 line-clamp-3">
+                                            {session.description}
+                                        </p>
+                                    </div>
+
+                                    <div className="flex items-center justify-between mt-4 pt-4 border-t border-zinc-800">
+                                        <span className="text-xs text-zinc-600 font-mono truncate mr-4">
+                                            ID: {session.id.substring(0, 8)}...
+                                        </span>
+                                        
+                                        <button 
+                                            onClick={() => handleCopy(session.id)}
+                                            className="flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded 
+                                            bg-zinc-800/50 text-zinc-300 
+                                            hover:bg-zinc-700 
+                                            hover:text-white 
+                                            transition-colors"
+                                        >
+                                            {copiedId === session.id ? (
+                                                <>
+                                                    <Check size={14} className="text-green-500" />
+                                                    <span className="text-green-500">Copied!</span>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Copy size={14} />
+                                                    Copy ID
+                                                </>
+                                            )}
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
             </main>
-            
-            {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {sessions.map(session => (
-                    <div key={session.id} className="bg-zinc-800 p-4 rounded-lg">
-                        <h2 className="text-xl font-bold text-blue-400">{session.name} - {session.id}</h2>
-                        <p className="text-zinc-400">{session.description}</p>
-                    </div>
-                ))}
-            </div>
-
-            <h2>Create Session</h2>
-
-            <form
-                onSubmit={handleSessionCreation}
-                className="flex flex-col gap-4 bg-zinc-800 p-8 rounded-lg shadow-lg w-96"
-            >
-                <div>
-                    <label className="block mb-1 text-sm text-zinc-400">Session Name</label>
-                    <input
-                        type="text"
-                        value={sessionName}
-                        onChange={(e) => setSessionName(e.target.value)}
-                        className="w-full p-2 rounded bg-zinc-700 text-white outline-none focus:ring-2 focus:ring-blue-500"
-                        required
-                    />
-                </div>
-
-                <div>
-                    <label className="block mb-1 text-sm text-zinc-400">Description</label>
-                    <input
-                        type="text"
-                        value={description}
-                        onChange={(e) => setDescription(e.target.value)}
-                        className="w-full p-2 rounded bg-zinc-700 text-white outline-none focus:ring-2 focus:ring-blue-500"
-                        required
-                    />
-                </div>
-
-                <div>
-                    <label className="block mb-1 text-sm text-zinc-400">Password</label>
-                    <input
-                        type="password"
-                        value={createPassword}
-                        onChange={(e) => setCreatePassword(e.target.value)}
-                        className="w-full p-2 rounded bg-zinc-700 text-white outline-none focus:ring-2 focus:ring-blue-500"
-                        required
-                    />
-                </div>
-
-                <button
-                    type="submit"
-                    className="mt-4 bg-blue-600 hover:bg-blue-700 p-2 rounded font-bold transition-colors"
-                >
-                    Create Session
-                </button>
-            </form>
-
-            <h2>Enter Session</h2>
-
-            <form
-                onSubmit={handleSessionEnter}
-                className="flex flex-col gap-4 bg-zinc-800 p-8 rounded-lg shadow-lg w-96"
-            >
-                <div>
-                    <label className="block mb-1 text-sm text-zinc-400">Session Id</label>
-                    <input
-                        type="text"
-                        value={sessionId}
-                        onChange={(e) => setSessionId(e.target.value)}
-                        className="w-full p-2 rounded bg-zinc-700 text-white outline-none focus:ring-2 focus:ring-blue-500"
-                        required
-                    />
-                </div>
-
-                <div>
-                    <label className="block mb-1 text-sm text-zinc-400">Password</label>
-                    <input
-                        type="password"
-                        value={enterPassword}
-                        onChange={(e) => setEnterPassword(e.target.value)}
-                        className="w-full p-2 rounded bg-zinc-700 text-white outline-none focus:ring-2 focus:ring-blue-500"
-                        required
-                    />
-                </div>
-
-                <button
-                    type="submit"
-                    className="mt-4 bg-blue-600 hover:bg-blue-700 p-2 rounded font-bold transition-colors"
-                >
-                    Enter Session
-                </button>
-            </form> */}
         </div>
     );
 }
