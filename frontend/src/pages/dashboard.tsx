@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import { api } from "../services/api";
 import { useNavigate } from "react-router-dom";
-import { Layers3, LogOut } from "lucide-react";
+import { Layers3, LogOut, Plus, LogIn, Lock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 
 type Session = {
     id: string;
@@ -106,8 +109,136 @@ export function Dashboard() {
                     Logout
                 </button>
             </nav>
+
+            <main className="max-w-7xl mx-auto p-8 flex flex-col gap-12">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <form
+                        onSubmit={handleSessionCreation}
+                        className="flex flex-col gap-6 bg-[rgb(5,5,6)] border border-zinc-800 p-8 rounded-xl shadow-2xl"
+                    >
+                        <div className="flex items-center gap-3 mb-2">
+                            <Plus className="text-blue-500"/>
+                            <h2 className="text-2xl font-bold">
+                                Create Session
+                            </h2>
+                        </div>
+
+                        <FieldGroup>
+                            <Field>
+                                <FieldLabel>
+                                    Session Name
+                                </FieldLabel>
+                                <Input
+                                    type="text"
+                                    value={sessionName}
+                                    onChange={(e) => setSessionName(e.target.value)}
+                                    required
+                                    placeholder="Ex: D&D Campain"
+                                    className="bg-zinc-900/50
+                                        placeholder:text-zinc-600"
+                                />
+                            </Field>
+
+                            <Field>
+                                <FieldLabel>
+                                    Description
+                                </FieldLabel>
+                                <Input
+                                    type="text"
+                                    value={description}
+                                    onChange={(e) => setDescription(e.target.value)}
+                                    required
+                                    placeholder="Ex: xxx"
+                                    className="bg-zinc-900/50
+                                        placeholder:text-zinc-600"
+                                />
+                            </Field>
+
+                            <Field>
+                                <FieldLabel>
+                                    Passwprd
+                                </FieldLabel>
+                                <Input
+                                    type="text"
+                                    value={createPassword}
+                                    onChange={(e) => setCreatePassword(e.target.value)}
+                                    required
+                                    placeholder="Ex: D&D Campain"
+                                    className="bg-zinc-900/50
+                                        placeholder:text-zinc-600"
+                                />
+                            </Field>
+                        </FieldGroup>
+
+                        <Button
+                            type="submit"
+                            className="mt-2 font-bold w-full transition-all duration-300 hover:bg-zinc-800
+                                hover:shadow-[0_0_20px_rgba(255,255,255,0.15)]"
+                        >
+                            Create
+                        </Button>
+                    </form>
+
+                    <form
+                        onSubmit={handleSessionEnter}
+                        className="flex flex-col gap-6 bg-[rgb(5,5,6)] border border-zinc-800 p-8 rounded-xl shadow-2xl"
+                    >
+                        <div className="flex items-center gap-3 mb-2">
+                            <LogIn className="text-green-500"/>
+                            <h2 className="text-2xl font-bold">
+                                Enter Session
+                            </h2>
+                        </div>
+
+                            <FieldGroup>
+                                <Field>
+                                    <FieldLabel>
+                                        Session ID
+                                    </FieldLabel>
+                                    <Input
+                                        type="text"
+                                        value={sessionId}
+                                        onChange={(e) => setSessionId(e.target.value)}
+                                        required
+                                        placeholder="Ex: 123e4567-e89b..."
+                                        className="bg-zinc-900/50
+                                            placeholder:text-zinc-600"
+                                    />
+                                </Field>
+
+                                <Field>
+                                    <FieldLabel>
+                                        Password
+                                    </FieldLabel>
+                                    <div className="relative">
+                                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={16}/>
+                                        <Input
+                                            type="password"
+                                            value={enterPassword}
+                                            onChange={(e) => setEnterPassword(e.target.value)}
+                                            required
+                                            placeholder="Ex: *********"
+                                            className="pl-10 bg-zinc-900/50
+                                                placeholder:text-zinc-600"
+                                        />
+                                    </div>                                    
+                                </Field>
+                            </FieldGroup>
+
+                            <div className="flex-grow"></div>
+
+                            <Button
+                                type="submit"
+                                className="mt-2 font-bold w-full transition-all duration-300 hover:bg-zinc-800
+                                    hover:shadow-[0_0_20px_rgba(255,255,255,0.15)]"
+                            >
+                                Enter
+                            </Button>
+                    </form>
+                </div>
+            </main>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {sessions.map(session => (
                     <div key={session.id} className="bg-zinc-800 p-4 rounded-lg">
                         <h2 className="text-xl font-bold text-blue-400">{session.name} - {session.id}</h2>
@@ -197,7 +328,7 @@ export function Dashboard() {
                 >
                     Enter Session
                 </button>
-            </form>
+            </form> */}
         </div>
     );
 }
