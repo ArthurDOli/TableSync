@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { api } from "../services/api";
 import { useNavigate } from "react-router-dom";
-import { Layers3, LogOut, Plus, LogIn, Lock, Check, Copy, Ghost } from "lucide-react";
+import { Layers3, LogOut, Plus, LogIn, Lock, Check, Copy, Ghost, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Field, FieldGroup, FieldLabel, FieldDescription } from "@/components/ui/field";
 
 type Session = {
     id: string;
@@ -12,6 +12,17 @@ type Session = {
     description: string;
     status: string;
 };
+
+interface CreateFormErrors {
+    sessionName?: string;
+    description?: string;
+    password?: string;
+}
+
+interface EnterFormErrors {
+    sessionId?: string;
+    password?: string;
+}
 
 export function Dashboard() {
     const [sessions, setSessions] = useState<Session[]>([]);
@@ -21,6 +32,12 @@ export function Dashboard() {
 
     const [createPassword, setCreatePassword] = useState('');
     const [enterPassword, setEnterPassword] = useState('');
+
+    const [showCreatePassword, setShowCreatePassword] = useState(false);
+    const [showEnterPassword, setShowEnterPassword] = useState(false);
+
+    const [createErrors, setCreateErrors] = useState<CreateFormErrors>({});
+    const [enterErrors, setEnterErrors] = useState<EnterFormErrors>({});
 
     const [sessionId, setSessionId] = useState('');
 
@@ -43,6 +60,17 @@ export function Dashboard() {
 
     async function handleSessionCreation(e: React.FormEvent) {
         e.preventDefault();
+        setCreateErrors({});
+
+        const newErrors: CreateFormErrors = {};
+        if (sessionName.length < 2 || sessionName.length > 100) newErrors.sessionName = "Session name must be between 2 and 100 characters.";
+        if (description.length > 1000) newErrors.description = "Description must be less than 1000 characters.";
+        if (createPassword.length < 4) newErrors.password = "Password must be at least 4 characters."
+
+        if (Object.keys(newErrors).length > 0) {
+            setCreateErrors(newErrors);
+            return;
+        }
 
         try {
             const response = await api.post('/sessions', {
@@ -58,12 +86,21 @@ export function Dashboard() {
             setCreatePassword('');
         } catch (error) {
             console.error("Error creating session", error);
-            alert("Failed to create session. Please check your inputs");
         }
     }
 
     async function handleSessionEnter(e: React.FormEvent) {
         e.preventDefault();
+        setEnterErrors({});
+
+        const newErrors: EnterFormErrors = {};
+        if (sessionId.length < 5) newErrors.sessionId = "Please enter a valid Session ID";
+        if (enterPassword.length < 4) newErrors.password = "Password must be at least 4 characters";
+
+        if (Object.keys(newErrors).length > 0) {
+            setEnterErrors(newErrors);
+            return;
+        }
 
         try {
             const response = await api.post('/sessions/join', {
@@ -79,7 +116,6 @@ export function Dashboard() {
         setEnterPassword('');
         } catch (error) {
             console.error("Error entering session", error);
-            alert("Failed to enter session. Please check your inputs");
         }
     }
 
@@ -124,6 +160,7 @@ export function Dashboard() {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     <form
                         onSubmit={handleSessionCreation}
+                        noValidate
                         className="flex flex-col gap-6 bg-[rgb(5,5,6)] border border-zinc-800 p-8 rounded-xl shadow-2xl"
                     >
                         <div className="flex items-center gap-3 mb-2">
@@ -134,7 +171,7 @@ export function Dashboard() {
                         </div>
 
                         <FieldGroup>
-                            <Field>
+                            <Field data-invalid={!!createErrors.sessionName || undefined}>
                                 <FieldLabel>
                                     Session Name
                                 </FieldLabel>
@@ -142,41 +179,64 @@ export function Dashboard() {
                                     type="text"
                                     value={sessionName}
                                     onChange={(e) => setSessionName(e.target.value)}
+                                    aria-invalid={!!createErrors.sessionName || undefined}
                                     required
                                     placeholder="Ex: D&D Campain"
                                     className="bg-zinc-900/50
                                         placeholder:text-zinc-600"
                                 />
+                                <FieldDescription className={createErrors.sessionName ? "text-red-500" : "text-zinc-500"}>
+                                    {createErrors.sessionName || "Give your session a memorable name."}
+                                </FieldDescription>
                             </Field>
 
-                            <Field>
+                            <Field data-invalid={!!createErrors.description || undefined}>
                                 <FieldLabel>
-                                    Description
+                                    Description <span className="text-zinc-500 text-xs font-normal ml-1">(Optional)</span>
                                 </FieldLabel>
                                 <Input
                                     type="text"
                                     value={description}
                                     onChange={(e) => setDescription(e.target.value)}
+                                    aria-invalid={!!createErrors.description || undefined}
                                     required
-                                    placeholder="Ex: xxx"
+                                    placeholder="Ex: A weekly adventure in the Forgotten Realms"
                                     className="bg-zinc-900/50
                                         placeholder:text-zinc-600"
                                 />
+                                <FieldDescription className={createErrors.description ? "text-red-500" : "text-zinc-500"}>
+                                    {createErrors.description || "Briefly describe the theme or rules."}
+                                </FieldDescription>
                             </Field>
 
                             <Field>
                                 <FieldLabel>
-                                    Passwprd
+                                    Password
                                 </FieldLabel>
-                                <Input
-                                    type="text"
-                                    value={createPassword}
-                                    onChange={(e) => setCreatePassword(e.target.value)}
-                                    required
-                                    placeholder="Ex: D&D Campain"
-                                    className="bg-zinc-900/50
-                                        placeholder:text-zinc-600"
-                                />
+                                <div className="relative">
+                                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={16}/>
+                                    <Input
+                                        type={showCreatePassword ? "text" : "password"}
+                                        value={createPassword}
+                                        onChange={(e) => setCreatePassword(e.target.value)}
+                                        aria-invalid={!!createErrors.password || undefined}
+                                        required
+                                        placeholder="Ex: *********"
+                                        className="pl-10 bg-zinc-900/50
+                                            placeholder:text-zinc-600"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowCreatePassword(!showCreatePassword)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400
+                                            hover:text-zinc-200"
+                                    >
+                                        {showCreatePassword ? <EyeOff size={18}/> : <Eye aria-setsize={18}/>}
+                                    </button>
+                                </div>
+                                <FieldDescription className={createErrors.password ? "text-red-500" : "text-zinc-500"}>
+                                    {createErrors.password || "Set a password for players to join."}
+                                </FieldDescription>
                             </Field>
                         </FieldGroup>
 
@@ -191,6 +251,7 @@ export function Dashboard() {
 
                     <form
                         onSubmit={handleSessionEnter}
+                        noValidate
                         className="flex flex-col gap-6 bg-[rgb(5,5,6)] border border-zinc-800 p-8 rounded-xl shadow-2xl"
                     >
                         <div className="flex items-center gap-3 mb-2">
@@ -201,37 +262,52 @@ export function Dashboard() {
                         </div>
 
                             <FieldGroup>
-                                <Field>
-                                    <FieldLabel>
-                                        Session ID
+                                <Field data-invalid={!!enterErrors.sessionId || undefined}>
+                                    <FieldLabel>Session ID
+                                        
                                     </FieldLabel>
                                     <Input
                                         type="text"
                                         value={sessionId}
                                         onChange={(e) => setSessionId(e.target.value)}
+                                        aria-invalid={!!enterErrors.sessionId || undefined}
                                         required
                                         placeholder="Ex: 123e4567-e89b..."
-                                        className="bg-zinc-900/50
+                                        className="bg-zinc-900/50 
                                             placeholder:text-zinc-600"
                                     />
+                                    <FieldDescription className={enterErrors.sessionId ? "text-red-500" : "text-zinc-500"}>
+                                        {enterErrors.sessionId || "Paste the ID provided by the host."}
+                                    </FieldDescription>
                                 </Field>
 
-                                <Field>
+                                <Field data-invalid={!!enterErrors.password || undefined}>
                                     <FieldLabel>
                                         Password
                                     </FieldLabel>
                                     <div className="relative">
                                         <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={16}/>
                                         <Input
-                                            type="password"
+                                            type={showEnterPassword ? "text" : "password"}
                                             value={enterPassword}
                                             onChange={(e) => setEnterPassword(e.target.value)}
+                                            aria-invalid={!!enterErrors.password || undefined}
                                             required
                                             placeholder="Ex: *********"
                                             className="pl-10 bg-zinc-900/50
                                                 placeholder:text-zinc-600"
                                         />
-                                    </div>                                    
+                                        <button
+                                            type="button" 
+                                            onClick={() => setShowEnterPassword(!showEnterPassword)}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-200"
+                                        >
+                                            {showEnterPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                        </button>
+                                    </div> 
+                                    <FieldDescription className={enterErrors.password ? "text-red-500" : "text-zinc-500"}>
+                                        {enterErrors.password || "Enter the session password."}
+                                    </FieldDescription>                                    
                                 </Field>
                             </FieldGroup>
 
