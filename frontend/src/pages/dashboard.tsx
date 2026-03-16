@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../services/api";
 import { useNavigate } from "react-router-dom";
+import { Layers3, LogOut } from "lucide-react";
 
 type Session = {
     id: string;
@@ -81,14 +82,30 @@ export function Dashboard() {
     }, []);
 
     return (
-        <div className="min-h-screen bg-zinc-900 text-white p-8">
-            <h1 className="text-3xl font-bold mb-8">My Sessions</h1>
+        <div className="min-h-screen bg-black 
+            bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] 
+            bg-[size:128px_128px] text-white">
+            <nav className="sticky top-0 z-50 flex items-center justify-between px-8 py-4 bg-black/50 backdrop-blur-md border-b 
+                border-zinc-800">
+                <div className="flex items-center gap-3">
+                    <Layers3 className="text-white" size={28}/>
+                    <span className="text-2xl font-extrabold text-white tracking-tighter">
+                        TableSync
+                    </span>
+                </div>
 
-            <button
-            onClick={handleLogout}
-            className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded font-bold transition-colors">
-                Logout
-            </button>
+                <button
+                    onClick={handleLogout}
+                    className="flex items-center gap-2 px-4 py-2 rounded-md border border-zinc-800 bg-[rgb(5,5,6)] text-zinc-400
+                        font-semibold transition-all duration-300
+                        hover:border-red-500
+                        hover:text-red-500
+                        hover:shadow-[0_0_15px_rgba(239,68,68,0.3)]"
+                >
+                    <LogOut size={18}/>
+                    Logout
+                </button>
+            </nav>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {sessions.map(session => (
