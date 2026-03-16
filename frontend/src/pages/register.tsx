@@ -33,6 +33,11 @@ export function Register() {
         if (username.length < 2 || username.length > 50) newErrors.username = "Username must be between 2 and 50 characters";
         if (password.length < 6) newErrors.password = "Password must be at least 6 characters";
 
+        const emailRegex = /\S+@\S+\.\S+/;
+        if (!email || !emailRegex.test(email)) {
+            newErrors.email = "Must be a valid email address.";
+        }
+        
         if (Object.keys(newErrors).length > 0) {
             setErrors(newErrors);
             return;
@@ -126,7 +131,7 @@ export function Register() {
                                     />
                                 </div>
                                 <FieldDescription className={errors.email ? "text-red-500" : "text-zinc-500"}>
-                                    {errors.email || "Enter a valid email address."}
+                                    {errors.email || "Must be a valid email address."}
                                 </FieldDescription>
                             </Field>
 
