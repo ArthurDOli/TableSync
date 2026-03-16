@@ -4,7 +4,7 @@ import { api } from "../services/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field, FieldGroup, FieldLabel, FieldDescription } from "@/components/ui/field";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, User, Mail, Lock } from "lucide-react";
 import backgroundImage from "@/assets/background-image.jpg"
 
 interface FormErrors {
@@ -83,14 +83,19 @@ export function Register() {
                             <FieldLabel htmlFor="username">
                                 Username
                             </FieldLabel>
-                            <Input
-                                id="username"
-                                type="text"
-                                value={username}
-                                onChange={(e) => setUsername(e.target.value)}
-                                aria-invalid={!!errors.username || undefined}
-                                required
-                            />
+                            <div className="relative">
+                                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
+                                <Input
+                                    id="username"
+                                    type="text"
+                                    value={username}
+                                    onChange={(e) => setUsername(e.target.value)}
+                                    aria-invalid={!!errors.username || undefined}
+                                    required
+                                    placeholder="Ex: MyUsername"
+                                    className="placeholder:text-zinc-500 pl-10"
+                                />
+                            </div>
                             <FieldDescription className={errors.username ? "text-red-500" : "text-zinc-500"}>
                                 {errors.username || "Must be between 2 and 50 characters."}
                             </FieldDescription>
@@ -99,14 +104,19 @@ export function Register() {
                         <Field data-invalid={!!errors.email || undefined}>
                             <FieldLabel htmlFor="email">
                                 Email
-                            </FieldLabel>
-                            <Input
-                                type="email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                aria-invalid={!!errors.email || undefined}
-                                required
-                            />
+                            </FieldLabel>      
+                            <div className="relative">       
+                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />               
+                                <Input
+                                    type="email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    aria-invalid={!!errors.email || undefined}
+                                    required
+                                    placeholder="Ex: player@gmail.com"
+                                    className="placeholder:text-zinc-500 pl-10"
+                                />
+                            </div>
                             <FieldDescription className={errors.email ? "text-red-500" : "text-zinc-500"}>
                                 {errors.email || "Enter a valid email address."}
                             </FieldDescription>
@@ -117,7 +127,8 @@ export function Register() {
                                 Password
                             </FieldLabel>
                             
-                            <div className="relative"> 
+                            <div className="relative">
+                                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={18} /> 
                                 <Input
                                     id="password"
                                     type={showPassword ? "text" : "password"} 
@@ -125,7 +136,8 @@ export function Register() {
                                     onChange={(e) => setPassword(e.target.value)}
                                     aria-invalid={!!errors.password || undefined}
                                     required
-                                    className="pr-10" 
+                                    placeholder="Ex: **********"
+                                    className="pr-10 placeholder:text-zinc-500 pl-10"
                                 />
                                 <button
                                     type="button"
