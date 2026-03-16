@@ -4,6 +4,7 @@ import { api } from "../services/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field, FieldGroup, FieldLabel, FieldDescription } from "@/components/ui/field";
+import { Eye, EyeOff } from "lucide-react";
 import backgroundImage from "@/assets/background-image.jpg"
 
 interface FormErrors {
@@ -17,6 +18,8 @@ export function Register() {
     const [email, setEmail] = useState('');
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
+
+    const [showPassword, setShowPassword] = useState(false);
 
     const [errors, setErrors] = useState<FormErrors>({});
 
@@ -113,14 +116,26 @@ export function Register() {
                             <FieldLabel htmlFor="password">
                                 Password
                             </FieldLabel>
-                            <Input
-                                id="password"
-                                type="password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                aria-invalid={!!errors.password || undefined}
-                                required
-                            />
+                            
+                            <div className="relative"> 
+                                <Input
+                                    id="password"
+                                    type={showPassword ? "text" : "password"} 
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    aria-invalid={!!errors.password || undefined}
+                                    required
+                                    className="pr-10" 
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-200"
+                                >
+                                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                </button>
+                            </div>
+
                             <FieldDescription className={errors.password ? "text-red-500" : "text-zinc-500"}>
                                 {errors.password || "Must be at least 6 characters long."}
                             </FieldDescription>
