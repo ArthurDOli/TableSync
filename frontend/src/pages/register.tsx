@@ -4,6 +4,7 @@ import { api } from "../services/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field, FieldGroup, FieldLabel, FieldDescription } from "@/components/ui/field";
+import backgroundImage from "@/assets/background-image.jpg"
 
 interface FormErrors {
     username?: string;
@@ -52,7 +53,7 @@ export function Register() {
     }
 
     return (
-        <div className="flex items-center justify-center min-h-screen 
+        <div className="flex items-center justify-center min-h-screen overflow-hidden
             bg-black bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] 
             bg-[size:128px_128px] text-white">
             
@@ -61,7 +62,7 @@ export function Register() {
                     onSubmit={handleRegister}
                     noValidate
                     className="flex flex-col gap-4 bg-[rgb(5,5,6)] border border-zinc-800 p-8 rounded-xl shadow-2xl w-full max-w-md
-                        shadow-[0_0_50px_10px_rgba(255,255,255,0.05)]"
+                        shadow-[0_0_50px_10px_rgba(255,255,255,0.05)] lg:ml-24"
                 >
                     <div className="flex flex-col gap-1">
                         <h1 className="text-3xl font-bold">Register</h1>
@@ -128,7 +129,8 @@ export function Register() {
 
                     <Button
                         type="submit"
-                        className="mt-4 font-bold w-full"
+                        className="mt-4 font-bold w-full transition-all duration-300 hover:bg-zinc-800
+                            hover:shadow-[0_0_20px_rgba(255,255,255,0.15)]"
                     >
                         Enter
                     </Button>
@@ -140,12 +142,18 @@ export function Register() {
                 </form>
             </div>
 
-            <div className="hidden lg:flex w-1/2 items-center justify-center p-8">
-                <div className="text-center">
-                    <h2 className="text-2xl font-bold text-zinc-400 border border-zinc-800 lg-[rgb(5,5,6)] p-6 rounded-xl">
-                        Placeholder
-                    </h2>
-                </div>
+            <div className="hidden lg:flex w-1/2 items-center justify-end relative h-screen">
+                <img 
+                    src={backgroundImage} 
+                    alt="TablesSync Background Image" 
+                    className="
+                        w-full max-w-[900px] h-full object-cover 
+                        absolute right-0
+                        opacity-40
+                        [mask-image:linear-gradient(ellipse_at_right_center,white_20%,transparent_75%)]
+                        [-webkit-mask-image:radial-gradient(ellipse_at_right_center,white_20%,transparent_75%)]
+                        "
+                />
             </div>
         </div>
     );
