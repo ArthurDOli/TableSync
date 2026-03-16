@@ -181,6 +181,15 @@ export function Register() {
                         [-webkit-mask-image:radial-gradient(ellipse_at_right_center,white_20%,transparent_75%)]
                         "
                 />
+
+                <div className="absolute bottom-20 right-24 text-right w-full max-w-[350px]">
+                    <p className="text-[26px] text-zinc-400 italic leading-relaxed">
+                        "The longest journey begins with a single step."
+                    </p>
+                    <p className="text-[20px] text-zinc-500 mt-1 font-medium">
+                        — A Wise Master
+                    </p>
+                </div>
             </div>
         </div>
     );
