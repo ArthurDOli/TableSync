@@ -5,18 +5,34 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field, FieldGroup, FieldLabel, FieldDescription } from "@/components/ui/field";
 
+interface FormErrors {
+    username?: string;
+    email?: string;
+    password?: string;
+    general?: string;
+}
+
 export function Register() {
     const [email, setEmail] = useState('');
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
 
-    const [hasError, setHasError] = useState(false);
+    const [errors, setErrors] = useState<FormErrors>({});
 
     const navigate = useNavigate();
 
     async function handleRegister(e: React.FormEvent) {
         e.preventDefault();
-        setHasError(false);
+        setErrors({});
+
+        const newErrors: FormErrors = {};
+        if (username.length < 2 || username.length > 50) newErrors.username = "Username must be between 2 and 50 characters";
+        if (password.length < 6) newErrors.password = "Password must be at least 6 characters";
+
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
+            return;
+        }
 
         try {
             const response = await api.post('/auth/register', {
@@ -30,8 +46,8 @@ export function Register() {
             localStorage.setItem('username', response.data.user.username);
 
             navigate('/dashboard');
-        } catch (error) {
-            setHasError(true);
+        } catch (error: any) {
+            setErrors({ general: "Registration error. Email or username might be taken." });
         }
     }
 
@@ -43,15 +59,23 @@ export function Register() {
             <div className="flex w-full flex-col justify-center items-center lg:w-1/2 px-4">
                 <form
                     onSubmit={handleRegister}
-                    className="flex flex-col gap-4 bg-[rgb(5,5,6)] border border-zinc-800 p-8 rounded-xl shadow-2xl w-full max-w-md"
+                    noValidate
+                    className="flex flex-col gap-4 bg-[rgb(5,5,6)] border border-zinc-800 p-8 rounded-xl shadow-2xl w-full max-w-md
+                        shadow-[0_0_50px_10px_rgba(255,255,255,0.05)]"
                 >
                     <div className="flex flex-col gap-1">
                         <h1 className="text-3xl font-bold">Register</h1>
                         <p className="text-zinc-400 text-sm mb-4">Create your account to enter the table</p>
                     </div>
 
+                    {errors.general && (
+                        <div className="bg-red-500/10 border border-red-500/50 text-red-500 text-sm p-3 rounded-md">
+                            {errors.general}
+                        </div>
+                    )}
+
                     <FieldGroup>
-                        <Field data-invalid={hasError ? true : undefined}>
+                        <Field data-invalid={!!errors.username || undefined}>
                             <FieldLabel htmlFor="username">
                                 Username
                             </FieldLabel>
@@ -60,26 +84,31 @@ export function Register() {
                                 type="text"
                                 value={username}
                                 onChange={(e) => setUsername(e.target.value)}
-                                aria-invalid={hasError ? true : undefined}
+                                aria-invalid={!!errors.username || undefined}
                                 required
                             />
+                            <FieldDescription className={errors.username ? "text-red-500" : "text-zinc-500"}>
+                                {errors.username || "Must be between 2 and 50 characters."}
+                            </FieldDescription>
                         </Field>
 
-                        <Field data-invalid={hasError ? true : undefined}>
+                        <Field data-invalid={!!errors.email || undefined}>
                             <FieldLabel htmlFor="email">
                                 Email
                             </FieldLabel>
                             <Input
-                                id="email"
                                 type="email"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                aria-invalid={hasError ? true : undefined}
+                                aria-invalid={!!errors.email || undefined}
                                 required
                             />
+                            <FieldDescription className={errors.email ? "text-red-500" : "text-zinc-500"}>
+                                {errors.email || "Enter a valid email address."}
+                            </FieldDescription>
                         </Field>
 
-                        <Field data-invalid={hasError ? true : undefined}>
+                        <Field data-invalid={!!errors.password || undefined}>
                             <FieldLabel htmlFor="password">
                                 Password
                             </FieldLabel>
@@ -88,14 +117,12 @@ export function Register() {
                                 type="password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                aria-invalid={hasError ? true : undefined}
+                                aria-invalid={!!errors.password || undefined}
                                 required
                             />
-                            {hasError && (
-                                <FieldDescription className="text-red-500 font-medium">
-                                    Registration error. Please verify credentials.
-                                </FieldDescription>
-                            )}
+                            <FieldDescription className={errors.password ? "text-red-500" : "text-zinc-500"}>
+                                {errors.password || "Must be at least 6 characters long."}
+                            </FieldDescription>
                         </Field>
                     </FieldGroup>
 
