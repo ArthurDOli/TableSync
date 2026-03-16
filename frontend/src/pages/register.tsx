@@ -2,16 +2,21 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../services/api";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Field, FieldGroup, FieldLabel, FieldDescription } from "@/components/ui/field";
 
 export function Register() {
     const [email, setEmail] = useState('');
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
 
+    const [hasError, setHasError] = useState(false);
+
     const navigate = useNavigate();
 
     async function handleRegister(e: React.FormEvent) {
         e.preventDefault();
+        setHasError(false);
 
         try {
             const response = await api.post('/auth/register', {
@@ -26,7 +31,7 @@ export function Register() {
 
             navigate('/dashboard');
         } catch (error) {
-            alert('Registration error. Please verify credentials');
+            setHasError(true);
         }
     }
 
@@ -40,41 +45,59 @@ export function Register() {
                     onSubmit={handleRegister}
                     className="flex flex-col gap-4 bg-[rgb(5,5,6)] border border-zinc-800 p-8 rounded-xl shadow-2xl w-full max-w-md"
                 >
-                    <h1 className="text-3xl font-bold">Register</h1>
-                    <p className="text-zinc-400 text-sm mb-4">Create your account to enter the table</p>
-
-                    <div>
-                        <label className="block mb-1 text-sm text-zinc-400">Username</label>
-                        <input
-                            type="text"
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
-                            className="w-full p-2 rounded bg-zinc-700 text-white outline-none focus:ring-2 focus:ring-blue-500"
-                            required
-                        />
+                    <div className="flex flex-col gap-1">
+                        <h1 className="text-3xl font-bold">Register</h1>
+                        <p className="text-zinc-400 text-sm mb-4">Create your account to enter the table</p>
                     </div>
 
-                    <div>
-                        <label className="block mb-1 text-sm text-zinc-400">Email</label>
-                        <input
-                            type="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            className="w-full p-2 rounded bg-zinc-700 text-white outline-none focus:ring-2 focus:ring-blue-500"
-                            required
-                        />
-                    </div>
+                    <FieldGroup>
+                        <Field data-invalid={hasError ? true : undefined}>
+                            <FieldLabel htmlFor="username">
+                                Username
+                            </FieldLabel>
+                            <Input
+                                id="username"
+                                type="text"
+                                value={username}
+                                onChange={(e) => setUsername(e.target.value)}
+                                aria-invalid={hasError ? true : undefined}
+                                required
+                            />
+                        </Field>
 
-                    <div>
-                        <label className="block mb-1 text-sm text-zinc-400">Password</label>
-                        <input
-                            type="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            className="w-full p-2 rounded bg-zinc-700 text-white outline-none focus:ring-2 focus:ring-blue-500"
-                            required
-                        />
-                    </div>
+                        <Field data-invalid={hasError ? true : undefined}>
+                            <FieldLabel htmlFor="email">
+                                Email
+                            </FieldLabel>
+                            <Input
+                                id="email"
+                                type="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                aria-invalid={hasError ? true : undefined}
+                                required
+                            />
+                        </Field>
+
+                        <Field data-invalid={hasError ? true : undefined}>
+                            <FieldLabel htmlFor="password">
+                                Password
+                            </FieldLabel>
+                            <Input
+                                id="password"
+                                type="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                aria-invalid={hasError ? true : undefined}
+                                required
+                            />
+                            {hasError && (
+                                <FieldDescription className="text-red-500 font-medium">
+                                    Registration error. Please verify credentials.
+                                </FieldDescription>
+                            )}
+                        </Field>
+                    </FieldGroup>
 
                     <Button
                         type="submit"
