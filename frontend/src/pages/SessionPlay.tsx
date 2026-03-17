@@ -4,6 +4,7 @@ import { api } from "../services/api";
 import { Client } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 import { Tabletop } from "../components/Tabletop";
+import { PanelRightClose, PanelRightOpen } from "lucide-react";
 
 type ChatMessage = {
     id: number;
@@ -116,27 +117,32 @@ export function SessionPlay() {
                 {!showSidebar && (
                     <button
                         onClick={() => setShowSidebar(true)}
-                        className="absolute right-0 top-1/2 -translate-y-1/2 bg-zinc-800 p-2 rounded-l-lg border border-r-0 border-zinc-600 hover:bg-zinc-700 z-10"
+                        className="absolute right-0 top-1/2 -translate-y-1/2 bg-[rgb(5,5,6)] p-3 rounded-l-xl border border-r-0
+                            border-zinc-800 z-10 text-zinc-400
+                            hover:bg-zinc-800
+                            hover:text-white
+                            shadow-[-5px_0_20px_rgba(0,0,0,0.3)]"
                     >
-                        ◀
+                        <PanelRightOpen size={24}/>
                     </button>
                 )}
             </div>
 
             {showSidebar && (
-                <div className="w-[300px] flex flex-col bg-zinc-900 border-l border-zinc-700 shrink-0">
-                    <div className="p-4 border-b border-zinc-800 bg-zinc-950 flex justify-between items-center">
+                <div className="w-[400px] flex flex-col bg-[rgb(5,5,6)] border-l border-zinc-800 shrink-0 transition-all">
+                    <div className="p-3 border-b border-zinc-800 flex justify-between items-center shrink-0">
                         <div>
-                            <h2 className="text-lg font-bold text-blue-400">Session Chat</h2>
-                            <p className="text-xs text-zinc-500">
-                                {isMaster ? 'Master' : `Playing as: ${myCharacterName}`}
+                            <p className="text-xs text-zinc-500 font-medium">
+                                {isMaster ? 'Playing as: Master' : `Playing as: ${myCharacterName}`}
                             </p>
                         </div>
                         <button
                             onClick={() => setShowSidebar(false)}
-                            className="text-zinc-500 hover:text-white text-sm"
+                            className="text-zinc-500 rounded p-1 transition-colors
+                                hover:text-white
+                                hover:bg-zinc-800"
                         >
-                            ▶
+                            <PanelRightClose size={20}/>
                         </button>
                     </div>
 
