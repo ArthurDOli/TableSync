@@ -161,7 +161,7 @@ export function SessionPlay() {
                 {!showSidebar && (
                     <button
                         onClick={() => setShowSidebar(true)}
-                        className="absolute right-0 top-1/2 -translate-y-1/2 bg-[rgb(5,5,6)] p-3 rounded-l-xl border border-r-0
+                        className="absolute right-0 top-3 bg-[rgb(5,5,6)] p-2 rounded-l-lg border border-r-0
                             border-zinc-800 z-10 text-zinc-400
                             hover:bg-zinc-800
                             hover:text-white

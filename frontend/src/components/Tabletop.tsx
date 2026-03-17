@@ -80,17 +80,23 @@ export function Tabletop({ sessionId, isMaster, characters, stompClient, isConne
     }, [initialScale]);
 
     useEffect(() => {
-        function updateSize() {
+        const container = containerRef.current;
+        if (!container) return;
+
+        const resizeObserver = new ResizeObserver(() => {
             if (containerRef.current) {
                 setStageSize({
                     width: containerRef.current.offsetWidth,
                     height: containerRef.current.offsetHeight,
                 });
             }
-        }
-        updateSize();
-        window.addEventListener('resize', updateSize);
-        return () => window.removeEventListener('resize', updateSize);
+        });
+
+        resizeObserver.observe(container);
+
+        return () => {
+            resizeObserver.disconnect();
+        };
     }, []);
 
     useEffect(() => {
