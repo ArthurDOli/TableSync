@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { Stage, Layer, Circle, Text, Image as KonvaImage, Rect } from "react-konva";
+import { Stage, Layer, Circle, Text, Image as KonvaImage } from "react-konva";
 import { Client } from "@stomp/stompjs";
 import useImage from "use-image";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { ImageIcon, X } from "lucide-react";
 
 type Character = {
     id: string;
@@ -140,25 +143,30 @@ export function Tabletop({ sessionId, isMaster, characters, stompClient, isConne
     }
 
     return (
-        <div className="w-full h-full flex flex-col">
+        <div className="w-full h-full flex flex-col relative">
 
             {isMaster && (
-                <div className="flex gap-2 p-2 bg-zinc-950 border-b border-zinc-700 shrink-0">
-                    <input
+                <div className="absolute top-4 left-4 z-10 flex items-center gap-2 bg-[rgb(5,5,6)] p-3 rounded-xl border 
+                    border-zinc-800 shadow-xl backdrop-blur-sm bg-opacity-90">
+                    <ImageIcon size={18} className="text-zinc-400"/>
+                    <Input
                         type="text"
-                        placeholder="Background image URL..."
+                        placeholder="Image URL..."
                         value={inputUrl}
                         onChange={e => setInputUrl(e.target.value)}
-                        className="flex-1 p-1 rounded bg-zinc-800 text-white text-sm outline-none focus:ring-1 focus:ring-yellow-500"
+                        className="w-64 h-8 bg-zinc-900/50 border-zinc-700  text-sm
+                            placeholder:text-zinc-600"
                     />
-                    <button
+                    <Button
                         onClick={handleSetBackground}
-                        className="bg-yellow-600 hover:bg-yellow-700 px-3 py-1 rounded text-sm font-bold"
+                        size="sm"
+                        className="h-8 bg-blue-600 font-bold
+                            hover:bg-blue-700"
                     >
-                        Set Background
-                    </button>
+                        Apply
+                    </Button>
                     {backgroundUrl && (
-                        <button
+                        <Button
                             onClick={() => {
                                 setBackgroundUrl('');
                                 if (stompClient && isConnected) {
@@ -168,24 +176,22 @@ export function Tabletop({ sessionId, isMaster, characters, stompClient, isConne
                                     });
                                 }
                             }}
-                            className="bg-zinc-700 hover:bg-zinc-600 px-3 py-1 rounded text-sm"
+                            size="icon"
+                            variant="destructive"
+                            className="h-8 w-8"
                         >
-                            Clear
-                        </button>
+                            <X size={17}/>
+                        </Button>
                     )}
                 </div>
             )}
 
-            <div ref={containerRef} className="flex-1 overflow-hidden bg-zinc-950 cursor-crosshair">
+            <div ref={containerRef} 
+                className="flex-1 overflow-hidden bg-black bg-[size:64px_64px] cursor-crosshair
+                    bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)]"
+                >
                 <Stage width={stageSize.width} height={stageSize.height}>
-
                     <Layer>
-                        <Rect
-                            x={0} y={0}
-                            width={stageSize.width}
-                            height={stageSize.height}
-                            fill="#09090b"
-                        />
                         {backgroundUrl && <BackgroundImage url={backgroundUrl} />}
                     </Layer>
 
@@ -198,7 +204,6 @@ export function Tabletop({ sessionId, isMaster, characters, stompClient, isConne
                             />
                         ))}
                     </Layer>
-
                 </Stage>
             </div>
         </div>
