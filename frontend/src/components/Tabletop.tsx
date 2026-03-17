@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Stage, Layer, Circle, Text, Image as KonvaImage } from "react-konva";
+import { Stage, Layer, Circle, Text, Image as KonvaImage, Group } from "react-konva";
 import { Client } from "@stomp/stompjs";
 import useImage from "use-image";
 import { Button } from "./ui/button";
@@ -51,9 +51,14 @@ function BackgroundImage({ url }: { url: string }) {
 
 export function Tabletop({ sessionId, isMaster, characters, stompClient, isConnected }: TabletopProps) {
     const containerRef = useRef<HTMLDivElement>(null);
+
     const [stageSize, setStageSize] = useState({ width: 800, height: 600 });
+    const [stageScale, setStageScale] = useState(1);
+    const [stagePosition, setStagePosition] = useState({ x: 0, y: 0 });
+
     const [backgroundUrl, setBackgroundUrl] = useState('');
     const [inputUrl, setInputUrl] = useState('');
+
     const [tokens, setTokens] = useState<TokenState[]>([]);
 
     useEffect(() => {
@@ -142,6 +147,29 @@ export function Tabletop({ sessionId, isMaster, characters, stompClient, isConne
         setInputUrl('');
     }
 
+    function handleWheel(e: any) {
+        e.evt.preventDefault();
+
+        const scaleBy = 1.1;
+        const stage = e.target.getStage();
+        const oldScale = stage.scaleX();
+        const pointer = stage.getPointerPosition();
+
+        const mousePointTo = {
+            x: (pointer.x - stage.x()) / oldScale,
+            y: (pointer.y - stage.y()) / oldScale,
+        };
+
+        const newScale = e.evt.deltaY < 0 ? oldScale * scaleBy : oldScale / scaleBy;
+
+        setStageScale(newScale);
+        
+        setStagePosition({
+            x: pointer.x - mousePointTo.x * newScale,
+            y: pointer.y - mousePointTo.y * newScale,
+        });
+    }
+
     return (
         <div className="w-full h-full flex flex-col relative">
 
@@ -190,7 +218,17 @@ export function Tabletop({ sessionId, isMaster, characters, stompClient, isConne
                 className="flex-1 overflow-hidden bg-black bg-[size:64px_64px] cursor-crosshair
                     bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)]"
                 >
-                <Stage width={stageSize.width} height={stageSize.height}>
+                <Stage 
+                    width={stageSize.width} 
+                    height={stageSize.height}
+                    draggable
+                    onWheel={handleWheel}
+                    scaleX={stageScale}
+                    scaleY={stageScale}
+                    x={stagePosition.x}
+                    y={stagePosition.y}
+                    className="cursor-move"
+                >
                     <Layer>
                         {backgroundUrl && <BackgroundImage url={backgroundUrl} />}
                     </Layer>
@@ -227,25 +265,38 @@ function TokenShape({
         .slice(0, 2);
 
     return (
-        <>
+        <Group
+            x={token.x}
+            y={token.y}
+            draggable
+            onDragStart={(e) => {
+                e.cancelBubble = true;
+            }}
+            onDragEnd={(e) => {
+                e.cancelBubble = true; 
+                onDragEnd(token.id, e.target.x(), e.target.y());
+            }}
+            onMouseEnter={(e) => {
+                const container = e.target.getStage()?.container();
+                if (container) container.style.cursor = 'grab';
+            }}
+            onMouseLeave={(e) => {
+                const container = e.target.getStage()?.container();
+                if (container) container.style.cursor = 'move';
+            }}
+        >
             <Circle
-                x={token.x}
-                y={token.y}
                 radius={RADIUS}
                 fill={token.color}
                 stroke="white"
                 strokeWidth={2}
-                draggable
                 shadowBlur={8}
                 shadowColor="black"
                 shadowOpacity={0.5}
-                onDragEnd={(e) => {
-                    onDragEnd(token.id, e.target.x(), e.target.y());
-                }}
             />
             <Text
-                x={token.x - RADIUS}
-                y={token.y - 8}
+                x={-RADIUS}
+                y={-8}
                 width={RADIUS * 2}
                 text={initials}
                 align="center"
@@ -255,8 +306,8 @@ function TokenShape({
                 listening={false}
             />
             <Text
-                x={token.x - 50}
-                y={token.y + RADIUS + 4}
+                x={- 50}
+                y={RADIUS + 4}
                 width={100}
                 text={token.name}
                 align="center"
@@ -264,6 +315,6 @@ function TokenShape({
                 fontSize={11}
                 listening={false}
             />
-        </>
+        </Group>
     );
 }
