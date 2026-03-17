@@ -4,7 +4,9 @@ import { api } from "../services/api";
 import { Client } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 import { Tabletop } from "../components/Tabletop";
-import { PanelRightClose, PanelRightOpen } from "lucide-react";
+import { PanelRightClose, PanelRightOpen, Send } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 type ChatMessage = {
     id: number;
@@ -158,22 +160,27 @@ export function SessionPlay() {
                         ))}
                     </div>
 
-                    <form onSubmit={handleSendMessage} className="p-4 bg-zinc-950 border-t border-zinc-800 flex gap-2">
-                        <input
+                    <form onSubmit={handleSendMessage} className="p-4 bg-[rgb(5,5,6)] border-t border-zinc-800 flex gap-2 shrink-0">
+                        <Input
                             type="text"
-                            placeholder={isConnected ? "Type a message..." : "Connecting..."}
+                            placeholder={isConnected ? "Type your message..." : "Connecting to chat..."}
                             value={currentMessage}
                             onChange={(e) => setCurrentMessage(e.target.value)}
-                            className="flex-1 p-2 rounded bg-zinc-800 text-white outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 text-sm"
+                            className="flex-1 bg-zinc-900/50 border-zinc-700
+                                focus-visible:ring-blue-500
+                                placeholder:text-zinc-600"
                             disabled={!isConnected}
                         />
-                        <button
+                        <Button
                             type="submit"
-                            disabled={!isConnected}
-                            className="bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded font-bold transition-colors disabled:opacity-50 text-sm"
+                            size="icon"
+                            disabled={!isConnected || !currentMessage.trim()}
+                            className="bg-blue-600 transition-all
+                                hover:bg-blue-700
+                                hover:shadow-[0_0_15px_rgba(37,99,235,0.4)]"
                         >
-                            ➤
-                        </button>
+                            <Send size={18} className="-ml-0.5"/>
+                        </Button>
                     </form>
                 </div>
             )}
