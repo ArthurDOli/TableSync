@@ -5,11 +5,14 @@ import useImage from "use-image";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { ImageIcon, X } from "lucide-react";
+import { api } from "@/services/api";
 
 type Character = {
     id: string;
     name: string;
     playerName: string;
+    tokenX?: number;
+    tokenY?: number;
 };
 
 type TokenState = {
@@ -36,6 +39,7 @@ interface TabletopProps {
     characters: Character[];
     stompClient: Client | null;
     isConnected: boolean;
+    initialBackground: string;
 }
 
 const TOKEN_COLORS = [
@@ -43,13 +47,13 @@ const TOKEN_COLORS = [
     "#8b5cf6", "#ec4899", "#06b6d4", "#f97316"
 ];
 
-function BackgroundImage({ url }: { url: string }) {
+function BackgroundImage({ url, scale }: { url: string, scale: number }) {
     const [image] = useImage(url, 'anonymous');
     if (!image) return null;
-    return <KonvaImage image={image} x={0} y={0} />;
+    return <KonvaImage image={image} x={0} y={0} scaleX={scale} scaleY={scale} />;
 }
 
-export function Tabletop({ sessionId, isMaster, characters, stompClient, isConnected }: TabletopProps) {
+export function Tabletop({ sessionId, isMaster, characters, stompClient, isConnected, initialBackground }: TabletopProps) {
     const containerRef = useRef<HTMLDivElement>(null);
 
     const [stageSize, setStageSize] = useState({ width: 800, height: 600 });
@@ -57,9 +61,17 @@ export function Tabletop({ sessionId, isMaster, characters, stompClient, isConne
     const [stagePosition, setStagePosition] = useState({ x: 0, y: 0 });
 
     const [backgroundUrl, setBackgroundUrl] = useState('');
+    const [bgImageScale, setBgImageScale] = useState(1);
+
     const [inputUrl, setInputUrl] = useState('');
 
     const [tokens, setTokens] = useState<TokenState[]>([]);
+
+    useEffect(() => {
+        if (initialBackground) {
+            setBackgroundUrl(initialBackground);
+        }
+    }, [initialBackground]);
 
     useEffect(() => {
         function updateSize() {
@@ -81,8 +93,8 @@ export function Tabletop({ sessionId, isMaster, characters, stompClient, isConne
         setTokens(characters.map((char, index) => ({
             id: char.id,
             name: char.name,
-            x: 80 + (index % 5) * 120,
-            y: 80 + Math.floor(index / 5) * 120,
+            x: char.tokenX ?? (80 + (index % 5) * 120),
+            y: char.tokenY ?? (80 + Math.floor(index / 5) * 120),
             color: TOKEN_COLORS[index % TOKEN_COLORS.length],
         })));
     }, [characters]);
@@ -112,7 +124,7 @@ export function Tabletop({ sessionId, isMaster, characters, stompClient, isConne
         return () => subscription.unsubscribe();
     }, [stompClient, isConnected, sessionId]);
 
-    function handleTokenDragEnd(tokenId: string, x: number, y: number) {
+    async function handleTokenDragEnd(tokenId: string, x: number, y: number) {
         setTokens(prev => prev.map(t =>
             t.id === tokenId ? { ...t, x, y } : t
         ));
@@ -129,9 +141,15 @@ export function Tabletop({ sessionId, isMaster, characters, stompClient, isConne
                 })
             });
         }
+
+        try {
+            await api.patch(`/characters/${tokenId}`, { tokenX: x, tokenY: y});
+        } catch (error) {
+            console.error("Error saving token position", error);
+        }
     }
 
-    function handleSetBackground() {
+    async function handleSetBackground() {
         setBackgroundUrl(inputUrl);
 
         if (stompClient && isConnected) {
@@ -144,7 +162,35 @@ export function Tabletop({ sessionId, isMaster, characters, stompClient, isConne
                 })
             });
         }
+
+        try {
+            await api.patch(`/sessions/${sessionId}/background?url=${encodeURIComponent(inputUrl)}`);
+        } catch (error) {
+            console.error("Error saving background", error);
+        }
+
         setInputUrl('');
+    }
+
+    async function handleClearBackground() {
+        setBackgroundUrl('');
+
+        if (stompClient && isConnected) {
+            stompClient.publish({
+                destination: '/app/tabletop.update',
+                body: JSON.stringify({
+                    sessionId,
+                    type: 'BACKGROUND_UPDATE',
+                    imageUrl: ''
+                })
+            });
+        }
+
+        try {
+            await api.patch(`/sessions/${sessionId}/background?url=`);
+        } catch (error) {
+            console.error("Error clearing background", error);
+        }
     }
 
     function handleWheel(e: any) {
@@ -174,41 +220,36 @@ export function Tabletop({ sessionId, isMaster, characters, stompClient, isConne
         <div className="w-full h-full flex flex-col relative">
 
             {isMaster && (
-                <div className="absolute top-4 left-4 z-10 flex items-center gap-2 bg-[rgb(5,5,6)] p-3 rounded-xl border 
-                    border-zinc-800 shadow-xl backdrop-blur-sm bg-opacity-90">
-                    <ImageIcon size={18} className="text-zinc-400"/>
+                <div className="absolute top-4 left-4 z-10 flex items-center gap-2 bg-[rgb(5,5,6)] p-3 rounded-xl border border-zinc-800 
+                    shadow-xl backdrop-blur-sm bg-opacity-90"
+                >
+                    <ImageIcon size={18} className="text-zinc-400" />
                     <Input
                         type="text"
                         placeholder="Image URL..."
                         value={inputUrl}
                         onChange={e => setInputUrl(e.target.value)}
-                        className="w-64 h-8 bg-zinc-900/50 border-zinc-700  text-sm
-                            placeholder:text-zinc-600"
+                        className="w-64 h-8 bg-zinc-900/50 border-zinc-700 text-sm"
                     />
-                    <Button
-                        onClick={handleSetBackground}
-                        size="sm"
-                        className="h-8 bg-blue-600 font-bold
-                            hover:bg-blue-700"
-                    >
+                    
+                    <div className="flex items-center gap-2 px-2 border-l border-zinc-700">
+                        <span className="text-xs text-zinc-500 font-bold">Size:</span>
+                        <Input
+                            type="number"
+                            step="0.1"
+                            value={bgImageScale}
+                            onChange={e => setBgImageScale(Number(e.target.value))}
+                            className="w-16 h-8 bg-zinc-900/50 border-zinc-700 text-sm"
+                        />
+                    </div>
+
+                    <Button onClick={handleSetBackground} size="sm" className="h-8 bg-blue-600 hover:bg-blue-700">
                         Apply
                     </Button>
+                    
                     {backgroundUrl && (
-                        <Button
-                            onClick={() => {
-                                setBackgroundUrl('');
-                                if (stompClient && isConnected) {
-                                    stompClient.publish({
-                                        destination: '/app/tabletop.update',
-                                        body: JSON.stringify({ sessionId, type: 'BACKGROUND_UPDATE', imageUrl: '' })
-                                    });
-                                }
-                            }}
-                            size="icon"
-                            variant="destructive"
-                            className="h-8 w-8"
-                        >
-                            <X size={17}/>
+                        <Button onClick={handleClearBackground} size="icon" variant="destructive" className="h-8 w-8">
+                            <X size={16} />
                         </Button>
                     )}
                 </div>
@@ -230,7 +271,7 @@ export function Tabletop({ sessionId, isMaster, characters, stompClient, isConne
                     className="cursor-move"
                 >
                     <Layer>
-                        {backgroundUrl && <BackgroundImage url={backgroundUrl} />}
+                        {backgroundUrl && <BackgroundImage url={backgroundUrl} scale={bgImageScale} />}
                     </Layer>
 
                     <Layer>
