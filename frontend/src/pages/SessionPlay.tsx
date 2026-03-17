@@ -21,6 +21,11 @@ type Character = {
     playerName: string;
 };
 
+const TOKEN_COLORS = [
+    "#3b82f6", "#ef4444", "#22c55e", "#f59e0b",
+    "#8b5cf6", "#ec4899", "#06b6d4", "#f97316"
+];
+
 export function SessionPlay() {
     const { id } = useParams();
     const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -104,6 +109,15 @@ export function SessionPlay() {
         setCurrentMessage('');
     }
 
+    function getCharacterColor(charName: string) {
+        if (charName === 'Master') return '#eab308';
+
+        const index = characters.findIndex(c => c.name === charName);
+        if (index === -1) return '#a1a1aa';
+
+        return TOKEN_COLORS[index % TOKEN_COLORS.length];
+    }
+
     return (
         <div className="flex h-screen w-screen bg-zinc-900 text-white overflow-hidden">
 
@@ -148,14 +162,17 @@ export function SessionPlay() {
                         </button>
                     </div>
 
-                    <div className="flex-1 p-4 overflow-y-auto flex flex-col gap-3">
+                    <div className="flex-1 p-4 overflow-y-auto flex flex-col gap-4">
                         {messages.map((msg, index) => (
-                            <div key={msg.id || index} className="bg-zinc-800 p-3 rounded-lg">
-                                <span className="font-bold text-green-400 text-sm block mb-1">
+                            <div key={msg.id || index} className="bg-zinc-900/50 border border-zinc-800/50 p-3 rounded-lg shadow-sm">
+                                <span 
+                                    className="font-bold text-sm block mb-1 drop-shadow-sm"
+                                    style={{ color: getCharacterColor(msg.characterName) }}
+                                >
                                     {msg.characterName}{' '}
                                     <span className="text-zinc-500 text-xs font-normal">({msg.username})</span>
                                 </span>
-                                <p className="text-zinc-200">{msg.content}</p>
+                                <p className="text-zinc-300 text-sm leading-relaxed">{msg.content}</p>
                             </div>
                         ))}
                     </div>
