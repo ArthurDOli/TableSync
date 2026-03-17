@@ -41,6 +41,9 @@ public class GameSession {
     private String backgroundImageUrl;
 
     @Builder.Default
+    private Double backgroundImageScale = 1.0;
+
+    @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private SessionStatus status = SessionStatus.ACTIVE;

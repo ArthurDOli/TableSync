@@ -11,4 +11,5 @@ public class TabletopMessage {
     private Double y;
     private String imageUrl;
     private String senderUsername;
+    private Double imageScale;
 }

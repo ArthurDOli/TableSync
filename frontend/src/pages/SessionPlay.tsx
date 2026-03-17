@@ -40,6 +40,7 @@ export function SessionPlay() {
     const [isMaster, setIsMaster] = useState(false);
     const [showSidebar, setShowSidebar] = useState(true);
     const [initialBgUrl, setInitialBgUrl] = useState('');
+    const [initialBgScale, setInitialBgScale] = useState(1);
     const chatContainerRef = useRef<HTMLDivElement>(null);
 
     const currentUsername = localStorage.getItem('username');
@@ -59,6 +60,7 @@ export function SessionPlay() {
                 setIsMaster(isMasterUser);
 
                 setInitialBgUrl(sessionRes.data.backgroundImageUrl || '');
+                setInitialBgScale(sessionRes.data.backgroundImageScale || 1);
 
                 if (isMasterUser) {
                     setMyCharacterName('Master');
@@ -153,6 +155,7 @@ export function SessionPlay() {
                     stompClient={stompClient}
                     isConnected={isConnected}
                     initialBackground={initialBgUrl}
+                    initialScale={initialBgScale}
                 />
 
                 {!showSidebar && (
@@ -225,17 +228,18 @@ export function SessionPlay() {
                                     className="bg-zinc-900/50 border border-zinc-800/50 p-3 rounded-lg shadow-sm"
                                 >
                                     <span
-                                        className="font=bold text-sm block mb-1 drop-shadow-sm"
+                                        className="font-bold text-sm block mb-1 drop-shadow-sm"
                                         style={{ color: getCharacterColor(msg.characterName) }}
                                     >
                                         {msg.characterName}{' '}
-                                        <span className="text-zinc-500 text-sx font-normal">
+                                        <span className="text-zinc-500 text-xs font-normal">
                                             ({msg.username})
-                                        </span>
-                                        <p className="text-zinc-300 text-sm leading-relaxed">
-                                            {msg.content}
-                                        </p>
+                                        </span>                                        
                                     </span>
+
+                                    <p className="text-zinc-300 text-sm leading-relaxed">
+                                        {msg.content}
+                                    </p>
                                 </div>
                             )
                         })}

@@ -123,13 +123,18 @@ public class SessionService {
     }
 
     @Transactional
-    public SessionResponse updateBackgroundImage(UUID sessionId, String backgroundUrl) {
+    public SessionResponse updateBackgroundImage(UUID sessionId, String backgroundUrl, Double scale) {
         log.info("Updating background for session: {}", sessionId);
 
         GameSession session = findSessionById(sessionId);
         validateMasterPermission(session);
 
         session.setBackgroundImageUrl(backgroundUrl);
+
+        if (scale != null) {
+            session.setBackgroundImageScale(scale);
+        }
+
         GameSession updatedSession = sessionRepository.save(session);
 
         log.info("Background updated successfully: {}", sessionId);

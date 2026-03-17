@@ -21,6 +21,8 @@ public class SessionResponse {
     private Long masterId;
     private String status;
     private LocalDateTime createdAt;
+    private String backgroundImageUrl;
+    private Double backgroundImageScale;
 
     public static SessionResponse fromEntity(GameSession session) {
         return SessionResponse.builder()
@@ -31,6 +33,8 @@ public class SessionResponse {
                 .masterId(session.getMaster().getId())
                 .status(session.getStatus().name())
                 .createdAt(session.getCreatedAt())
+                .backgroundImageUrl(session.getBackgroundImageUrl())
+                .backgroundImageScale(session.getBackgroundImageScale())
                 .build();
     }
 }

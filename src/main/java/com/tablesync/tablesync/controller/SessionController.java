@@ -188,9 +188,10 @@ public class SessionController {
     })
     public ResponseEntity<SessionResponse> updateBackgroundImage(
             @PathVariable UUID id,
-            @RequestParam String url
+            @RequestParam String url,
+            @RequestParam(required = false, defaultValue = "1.0") Double scale
     ) {
-        SessionResponse response = sessionService.updateBackgroundImage(id, url);
+        SessionResponse response = sessionService.updateBackgroundImage(id, url, scale);
         return ResponseEntity.ok(response);
     }
 

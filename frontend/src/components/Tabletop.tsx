@@ -31,6 +31,7 @@ type TabletopMessage = {
     y?: number;
     imageUrl?: string;
     senderUsername?: string;
+    imageScale?: number;
 };
 
 interface TabletopProps {
@@ -40,6 +41,7 @@ interface TabletopProps {
     stompClient: Client | null;
     isConnected: boolean;
     initialBackground: string;
+    initialScale: number;
 }
 
 const TOKEN_COLORS = [
@@ -53,7 +55,7 @@ function BackgroundImage({ url, scale }: { url: string, scale: number }) {
     return <KonvaImage image={image} x={0} y={0} scaleX={scale} scaleY={scale} />;
 }
 
-export function Tabletop({ sessionId, isMaster, characters, stompClient, isConnected, initialBackground }: TabletopProps) {
+export function Tabletop({ sessionId, isMaster, characters, stompClient, isConnected, initialBackground, initialScale }: TabletopProps) {
     const containerRef = useRef<HTMLDivElement>(null);
 
     const [stageSize, setStageSize] = useState({ width: 800, height: 600 });
@@ -61,7 +63,7 @@ export function Tabletop({ sessionId, isMaster, characters, stompClient, isConne
     const [stagePosition, setStagePosition] = useState({ x: 0, y: 0 });
 
     const [backgroundUrl, setBackgroundUrl] = useState('');
-    const [bgImageScale, setBgImageScale] = useState(1);
+    const [bgImageScale, setBgImageScale] = useState(initialScale);
 
     const [inputUrl, setInputUrl] = useState('');
 
@@ -72,6 +74,10 @@ export function Tabletop({ sessionId, isMaster, characters, stompClient, isConne
             setBackgroundUrl(initialBackground);
         }
     }, [initialBackground]);
+
+    useEffect(() => {
+        setBgImageScale(initialScale);
+    }, [initialScale]);
 
     useEffect(() => {
         function updateSize() {
@@ -117,6 +123,10 @@ export function Tabletop({ sessionId, isMaster, characters, stompClient, isConne
 
                 if (data.type === 'BACKGROUND_UPDATE' && data.imageUrl !== undefined) {
                     setBackgroundUrl(data.imageUrl);
+
+                    if (data.imageScale !== undefined) {
+                        setBgImageScale(data.imageScale);
+                    }
                 }
             }
         );
@@ -150,7 +160,9 @@ export function Tabletop({ sessionId, isMaster, characters, stompClient, isConne
     }
 
     async function handleSetBackground() {
-        setBackgroundUrl(inputUrl);
+        const finalUrl = inputUrl.trim() !== '' ? inputUrl : backgroundUrl;
+
+        setBackgroundUrl(finalUrl);
 
         if (stompClient && isConnected) {
             stompClient.publish({
@@ -158,13 +170,14 @@ export function Tabletop({ sessionId, isMaster, characters, stompClient, isConne
                 body: JSON.stringify({
                     sessionId,
                     type: 'BACKGROUND_UPDATE',
-                    imageUrl: inputUrl,
+                    imageUrl: finalUrl,
+                    imageScale: bgImageScale
                 })
             });
         }
 
         try {
-            await api.patch(`/sessions/${sessionId}/background?url=${encodeURIComponent(inputUrl)}`);
+            await api.patch(`/sessions/${sessionId}/background?url=${encodeURIComponent(finalUrl)}&scale=${bgImageScale}`);
         } catch (error) {
             console.error("Error saving background", error);
         }
@@ -238,7 +251,22 @@ export function Tabletop({ sessionId, isMaster, characters, stompClient, isConne
                             type="number"
                             step="0.1"
                             value={bgImageScale}
-                            onChange={e => setBgImageScale(Number(e.target.value))}
+                            onChange={e => {
+                                const newScale = Number(e.target.value);
+                                setBgImageScale(newScale);
+
+                                if (stompClient && isConnected && backgroundUrl) {
+                                    stompClient.publish({
+                                        destination: '/app/tabletop.update',
+                                        body: JSON.stringify({
+                                            sessionId,
+                                            type: 'BACKGROUND_UPDATE',
+                                            imageUrl: backgroundUrl,
+                                            imageScale: newScale
+                                        })
+                                    });
+                                }
+                            }}
                             className="w-16 h-8 bg-zinc-900/50 border-zinc-700 text-sm"
                         />
                     </div>
