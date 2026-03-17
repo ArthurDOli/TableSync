@@ -370,7 +370,7 @@ export function Dashboard() {
                                         
                                         <button 
                                             onClick={(e) => {
-                                                e.stopPropagation;
+                                                e.stopPropagation();
                                                 handleCopy(session.id);
                                             }}
                                             className="flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded 

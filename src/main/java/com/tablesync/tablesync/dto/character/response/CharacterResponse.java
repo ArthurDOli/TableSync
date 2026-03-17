@@ -29,7 +29,7 @@ public class CharacterResponse {
         return CharacterResponse.builder()
                 .id(character.getId())
                 .name(character.getName())
-                .playerName(character.getUser().getUsername())
+                .playerName(character.getUser().getRealUsername())
                 .templateId(character.getTemplate() != null ? character.getTemplate().getId() : null)
                 .imageUrl(character.getImageUrl())
                 .sheetData(parseJsonToMap(character.getSheetData(), mapper))

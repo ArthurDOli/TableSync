@@ -39,6 +39,12 @@ export function SessionPlay() {
                 const isMasterUser = currentUserId === sessionRes.data.masterId;
                 setIsMaster(isMasterUser);
 
+                if (isMasterUser) {
+                    setMyCharacterName('Master');
+                } else {
+                    setMyCharacterName('Loading...');
+                }
+
                 const charResponse = await api.get(`/characters/session/${id}`);
                 setCharacters(charResponse.data);
 
