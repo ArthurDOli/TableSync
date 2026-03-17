@@ -368,7 +368,10 @@ export function Dashboard() {
                                         </span>
                                         
                                         <button 
-                                            onClick={() => handleCopy(session.id)}
+                                            onClick={(e) => {
+                                                e.stopPropagation;
+                                                handleCopy(session.id);
+                                            }}
                                             className="flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded 
                                             bg-zinc-800/50 text-zinc-300 
                                             hover:bg-zinc-700 
