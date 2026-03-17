@@ -346,6 +346,7 @@ export function Dashboard() {
                             {sessions.map(session => (
                                 <div 
                                     key={session.id} 
+                                    onClick={() => navigate(`/session/${session.id}`)}
                                     className="group flex flex-col justify-between bg-[rgb(5,5,6)] border border-zinc-800 p-6 rounded-xl 
                                     transition-all duration-300 
                                     hover:-translate-y-2 
