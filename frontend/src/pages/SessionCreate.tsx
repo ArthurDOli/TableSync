@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { api } from "../services/api";
 import { Button } from "@/components/ui/button";
-import { Ghost, Sparkles, ImageIcon, User, Swords } from "lucide-react";
+import { Ghost, Sparkles, ImageIcon, User, Swords, AlertCircle } from "lucide-react";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -29,9 +29,19 @@ export function SessionCreate() {
     const [imageOffsetX, setImageOffsetX] = useState(50);
     const [imageOffsetY, setImageOffsetY] = useState(50);
 
+    const [formError, setFormError] = useState('');
+
+    const currentUserId = Number(localStorage.getItem('userId'));
+
     useEffect(() => {
-        async function fetchTemplate() {
+        async function fetchData() {
             try {
+                const sessionRes = await api.get(`/sessions/${id}`);
+                if (currentUserId === sessionRes.data.masterId) {
+                    navigate(`/session/${id}/play`, { replace: true });
+                    return;
+                }
+
                 const response = await api.get(`/templates/session/${id}`);
                 const fetchedTemplate = response.data[0];
                 
@@ -45,13 +55,13 @@ export function SessionCreate() {
                     setSheetData(initialData);
                 }
             } catch (error) {
-                console.error("Error fetching template", error);
+                console.error("Error fetching data", error);
             } finally {
                 setIsLoading(false);
             }
         }
-        fetchTemplate();
-    }, [id]);
+        fetchData();
+    }, [id, currentUserId, navigate]);
 
     function handleFieldChange(key: string, value: string) {
         setSheetData(prev => ({
@@ -62,6 +72,24 @@ export function SessionCreate() {
 
     async function handleCreateCharacter(e: React.FormEvent) {
         e.preventDefault();
+        setFormError('');
+
+        if (!characterName.trim()) {
+            setFormError("Character name is required.");
+            return;
+        }
+
+        if (characterName.trim().length < 2) {
+            setFormError("Character name must be at least 2 characters.");
+            return;
+        }
+
+        const emptyFields = Object.keys(sheetData).filter(key => !sheetData[key].trim());
+        if (emptyFields.length > 0) {
+            setFormError(`Please fill in all attributes: ${emptyFields.join(', ')}.`);
+            return;
+        }
+
         setIsSaving(true);
 
         try {
@@ -70,13 +98,16 @@ export function SessionCreate() {
                 templateId: template?.id,
                 name: characterName,
                 imageUrl: imageUrl,
+                imageScale: imageScale,
+                imageOffsetX: imageOffsetX,
+                imageOffsetY: imageOffsetY,
                 sheetData: sheetData
             });
 
             navigate(`/session/${id}/play`);
         } catch (error) {
             console.error("Error creating character", error);
-            alert("Failed to create character");
+            setFormError("Failed to create character. Please try again.");
             setIsSaving(false);
         }
     }
@@ -157,6 +188,7 @@ export function SessionCreate() {
 
                     <form
                         onSubmit={handleCreateCharacter}
+                        noValidate
                         className="flex flex-col gap-8 bg-[rgb(5,5,6)] border border-zinc-800 p-8 rounded-xl shadow-2xl"
                     >
                         <div className="flex flex-col gap-5">
@@ -174,7 +206,6 @@ export function SessionCreate() {
                                         type="text"
                                         value={characterName}
                                         onChange={e => setCharacterName(e.target.value)}
-                                        required
                                         placeholder="Ex: Artorias of the Abyss"
                                         className="h-11 bg-zinc-900/50 border-zinc-700 text-zinc-200
                                             focus-visible:ring-blue-500"
@@ -264,7 +295,6 @@ export function SessionCreate() {
                                             type="text"
                                             value={sheetData[key] || ''}
                                             onChange={e => handleFieldChange(key, e.target.value)}
-                                            required
                                             className="h-10 bg-zinc-900/50 border-zinc-700 text-zinc-200
                                                 focus-visible:ring-blue-500"
                                         />
@@ -273,7 +303,17 @@ export function SessionCreate() {
                             </div>
                         </div>
 
-                        <div className="pt-2 border-t border-zinc-800">
+                        <hr className="border-zinc-800 -mx-8" />
+
+                        <div className="flex flex-col gap-4">
+                            {formError && (
+                                <div className="flex items-center gap-2 text-red-400 bg-red-500/10 border border-red-500/20 p-3
+                                    rounded-lg text-sm animate-in fade-in zoom-in-95">
+                                    <AlertCircle size={16}/>
+                                    {formError}
+                                </div>
+                            )}
+
                             <Button
                                 type="submit"
                                 disabled={isSaving}

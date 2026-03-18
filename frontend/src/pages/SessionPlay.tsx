@@ -22,6 +22,12 @@ type Character = {
     id: string;
     name: string;
     playerName: string;
+    tokenX?: number;
+    tokenY?: number;
+    imageUrl?: string;
+    imageScale?: number;
+    imageOffsetX?: number;
+    imageOffsetY?: number;
 };
 
 const TOKEN_COLORS = [

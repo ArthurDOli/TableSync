@@ -157,6 +157,18 @@ public class CharacterService {
         if (request.getTokenY() != null) {
             character.setTokenY(request.getTokenY());
         }
+
+        if (request.getImageScale() != null) {
+            character.setImageScale(request.getImageScale());
+        }
+
+        if (request.getImageOffsetX() != null) {
+            character.setImageOffsetX(request.getImageOffsetX());
+        }
+
+        if (request.getImageOffsetY() != null) {
+            character.setImageOffsetY(request.getImageOffsetY());
+        }
     }
 
     private void updateCharacterFieldsPartially(PlayerCharacter character, UpdateCharacterRequest request) {
@@ -205,6 +217,9 @@ public class CharacterService {
                 .session(session)
                 .template(template)
                 .imageUrl(request.getImageUrl())
+                .imageScale(request.getImageScale() != null ? request.getImageScale() : 1.0)
+                .imageOffsetX(request.getImageOffsetX() != null ? request.getImageOffsetX() : 50.0)
+                .imageOffsetY(request.getImageOffsetY() != null ? request.getImageOffsetY() : 50.0)
                 .sheetData(convertMapToJsonString(request.getSheetData()))
                 .build();
     }

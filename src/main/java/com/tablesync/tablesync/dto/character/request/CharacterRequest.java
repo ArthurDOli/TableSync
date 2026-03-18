@@ -27,6 +27,12 @@ public class CharacterRequest {
 
     private String imageUrl;
 
+    private Double imageScale;
+
+    private Double imageOffsetX;
+
+    private Double imageOffsetY;
+
     @NotNull(message = "Sheet data is required")
     private Map<String, Object> sheetData;
 }

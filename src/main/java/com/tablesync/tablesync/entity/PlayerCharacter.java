@@ -53,4 +53,13 @@ public class PlayerCharacter {
     private Double tokenY;
 
     private String imageUrl;
+
+    @Builder.Default
+    private Double imageScale = 1.0;
+
+    @Builder.Default
+    private Double imageOffsetX = 50.0;
+
+    @Builder.Default
+    private Double imageOffsetY = 50.0;
 }

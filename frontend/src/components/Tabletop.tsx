@@ -13,6 +13,10 @@ type Character = {
     playerName: string;
     tokenX?: number;
     tokenY?: number;
+    imageUrl?: string;
+    imageScale?: number;
+    imageOffsetX?: number;
+    imageOffsetY?: number;
 };
 
 type TokenState = {
@@ -21,6 +25,10 @@ type TokenState = {
     x: number;
     y: number;
     color: string;
+    imageUrl: string;
+    imageScale: number;
+    imageOffsetX: number;
+    imageOffsetY: number;
 };
 
 type TabletopMessage = {
@@ -53,6 +61,38 @@ function BackgroundImage({ url, scale }: { url: string, scale: number }) {
     const [image] = useImage(url, 'anonymous');
     if (!image) return null;
     return <KonvaImage image={image} x={0} y={0} scaleX={scale} scaleY={scale} />;
+}
+
+function TokenImage({ url, offsetX, offsetY, scale, radius }: {
+    url: string;
+    offsetX: number;
+    offsetY: number;
+    scale: number;
+    radius: number;
+}) {
+    const [image] = useImage(url, 'anonymous');
+    if (!image || !image.width || !image.height) return null;
+
+    const diameter = radius * 2;
+
+    const coverScale = Math.max(diameter / image.width, diameter / image.height) * scale;
+
+    const finalW = image.width * coverScale;
+    const finalH = image.height * coverScale;
+
+    const imgX = -radius + (offsetX / 100) * (diameter - finalW);
+    const imgY = -radius + (offsetY / 100) * (diameter - finalH);
+
+    return (
+        <KonvaImage
+            image={image}
+            x={imgX}
+            y={imgY}
+            width={finalW}
+            height={finalH}
+            listening={false}
+        />
+    );
 }
 
 export function Tabletop({ sessionId, isMaster, characters, stompClient, isConnected, initialBackground, initialScale }: TabletopProps) {
@@ -108,6 +148,10 @@ export function Tabletop({ sessionId, isMaster, characters, stompClient, isConne
             x: char.tokenX ?? (80 + (index % 5) * 120),
             y: char.tokenY ?? (80 + Math.floor(index / 5) * 120),
             color: TOKEN_COLORS[index % TOKEN_COLORS.length],
+            imageUrl: char.imageUrl ?? '',
+            imageScale: char.imageScale ?? 1,
+            imageOffsetX: char.imageOffsetX ?? 50,
+            imageOffsetY: char.imageOffsetY ?? 50,
         })));
     }, [characters]);
 
@@ -360,28 +404,48 @@ function TokenShape({
                 if (container) container.style.cursor = 'move';
             }}
         >
+            {token.imageUrl ? (
+                <Group
+                    clipFunc={(ctx) => {
+                        ctx.arc(0, 0, RADIUS, 0, Math.PI * 2, false);
+                    }}
+                >
+                    <TokenImage
+                        url={token.imageUrl}
+                        offsetX={token.imageOffsetX}
+                        offsetY={token.imageOffsetY}
+                        scale={token.imageScale}
+                        radius={RADIUS}
+                    />
+                </Group>
+            ) : null}
+
             <Circle
                 radius={RADIUS}
-                fill={token.color}
+                fill={token.imageUrl ? 'transparent' : token.color}
                 stroke="white"
                 strokeWidth={2}
                 shadowBlur={8}
                 shadowColor="black"
                 shadowOpacity={0.5}
             />
+
+            {!token.imageUrl && (
+                <Text
+                    x={-RADIUS}
+                    y={-8}
+                    width={RADIUS * 2}
+                    text={initials}
+                    align="center"
+                    fill="white"
+                    fontSize={14}
+                    fontStyle="bold"
+                    listening={false}
+                />
+            )}
+
             <Text
-                x={-RADIUS}
-                y={-8}
-                width={RADIUS * 2}
-                text={initials}
-                align="center"
-                fill="white"
-                fontSize={14}
-                fontStyle="bold"
-                listening={false}
-            />
-            <Text
-                x={- 50}
+                x={-50}
                 y={RADIUS + 4}
                 width={100}
                 text={token.name}
