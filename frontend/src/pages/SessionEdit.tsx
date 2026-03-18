@@ -1,10 +1,13 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { api } from "../services/api";
-import { Layers3 } from "lucide-react";
+import { Layers3, Plus, Trash2, FileText } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Field, FieldGroup, FieldLabel, FieldDescription } from "@/components/ui/field";
 import backgroundImage from "@/assets/background-image.jpg"
 
-type Field = {
+type AttributeField = {
     name: string;
 };
 
@@ -14,7 +17,9 @@ export function SessionEdit() {
 
     const [templateName, setTemplateName] = useState('Default Template');
 
-    const [fields, setFields] = useState<Field[]>([{ name: '' }]);
+    const [fields, setFields] = useState<AttributeField[]>([{ name: '' }]);
+
+    const [isSaving, setIsSaving] = useState(false);
 
     function handleAddField() {
         setFields(prev => [...prev, { name: '' }]);
@@ -35,6 +40,14 @@ export function SessionEdit() {
     async function handleSaveTemplate(e: React.FormEvent) {
         e.preventDefault();
 
+        const validFields = fields.filter(f => f.name.trim() !== '');
+        if (validFields.length === 0) {
+            alert("You must add at least one attribute");
+            return;
+        }
+
+        setIsSaving(true);
+
         const schemaObject: Record<string, string> = {};
 
         fields.forEach(field => {
@@ -52,6 +65,8 @@ export function SessionEdit() {
         } catch (error) {
             console.log("Error creating template", error);
             alert("Failed to save template")
+        } finally {
+            setIsSaving(false);
         }
     }
 
@@ -70,71 +85,108 @@ export function SessionEdit() {
                     </div>
 
                     <form
-                        onClick={handleSaveTemplate}
+                        onSubmit={handleSaveTemplate}
                         className="flex flex-col gap-4 bg-[rgb(5,5,6)] border border-zinc-800 p-8 rounded-xl w-full
                             shadow-[0_0_50px_10px_rgba(255,255,255,0.05)]"
                     >
-                        <div className="flex flex-col gap-1 mb-4">
+                        <div className="flex flex-col gap-1">
                             <h1 className="text-2xl font-bold">
                                 Setup Character Sheet
                             </h1>
-                            <p className="text-zinc-400 text-sm">
+                            <p className="text-zinc-400 text-sm mb-2">
                                 Define the attributes for this session
                             </p>
                         </div>
 
-                        <div className="mb-6">
-                            <label className="block mb-2 text-zinc-400">Template Name</label>
-                            <input 
-                                type="text" 
-                                value={templateName}
-                                onChange={e => setTemplateName(e.target.value)}
-                                className="w-full p-2 rounded bg-zinc-700 text-white outline-none focus:ring-2 focus:ring-yellow-500"
-                                required
-                            />
-                        </div>
-
-                        <div className="mb-4 flex justify-between items-center">
-                            <h2 className="text-xl font-bold">Attributes</h2>
-                            <button 
-                                type="button" 
-                                onClick={handleAddField}
-                                className="bg-green-600 hover:bg-green-700 px-4 py-1 rounded font-bold transition-colors"
-                            >
-                                + Add Attribute
-                            </button>
-                        </div>
-
-                        <div className="flex flex-col gap-3 mb-8">
-                            {fields.map((field, index) => (
-                                <div key={index} className="flex gap-2">
-                                    <input 
+                        <FieldGroup>
+                            <Field>
+                                <FieldLabel>
+                                    Template Name
+                                </FieldLabel>
+                                <div className="relative">
+                                    <FileText className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18}/>
+                                    <Input 
                                         type="text"
-                                        placeholder="E.g., HP, Strength, Backstory..."
+                                        value={templateName}
+                                        onChange={(e) => setTemplateName(e.target.value)}
+                                        required
+                                        placeholder="Ex: D&D 5e Standard"
+                                        className="pl-10 bg-zinc-900/50 border-zinc-700
+                                            placeholder:text-zinc-600
+                                            focus-visible:ring-zinc-500"
+                                    />
+                                </div>
+                                <FieldDescription className="text-zinc-500">
+                                    Name this set of rules/attributes
+                                </FieldDescription>
+                            </Field>
+                        </FieldGroup>
+
+                        <hr className="border-zinc-800 -mx-8"/>
+
+                        <div className="flex flex-col gap-4">
+                            <div className="flex justify-between items-center">
+                                <FieldLabel className="mb-0">
+                                    Attributes
+                                </FieldLabel>
+                                <Button
+                                    type="button"
+                                    onClick={handleAddField}
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-7 text-xs border-zinc-700 bg-transparent text-zinc-300 transitions-colors
+                                        hover:bg-zinc-800
+                                        hover:text-white"
+                                >
+                                    <Plus size={14} className="mr-1" /> 
+                                        Add
+                                </Button>
+                            </div>
+
+                        <div className="flex flex-col gap-3 max-h-[30vh] overflow-y-auto pr-2 pb-1 scroll-smooth">
+                            {fields.map((field, index) => (
+                                <div
+                                key={index}
+                                className="flex gap-2 items-center animate-in fade-in zoom-in-95 duration-300"
+                                >
+                                    <Input 
+                                        type="text"
+                                        placeholder="E.g., HP, Strenght, Armor Class..."
                                         value={field.name}
                                         onChange={e => handleFieldChange(index, e.target.value)}
-                                        className="flex-1 p-2 rounded bg-zinc-700 text-white outline-none focus:ring-2 focus:ring-yellow-500"
                                         required
-                                    />
+                                        className="flex-1 bg-zinc-900/50 border-zinc-700
+                                        focus-visible:ring-zinc-500"
+                                        />
                                     {fields.length > 1 && (
-                                        <button 
+                                        <Button
                                             type="button"
+                                            variant="ghost"
+                                            size="icon"
                                             onClick={() => handleRemoveField(index)}
-                                            className="bg-red-600 hover:bg-red-700 px-3 rounded font-bold transition-colors"
+                                            className="shrink-0 text-zinc-500 border border-transparent transition-all
+                                                hover:text-white
+                                                hover:bg-red-500/20
+                                                hover:border-red-500/50"
+                                                title="Remove attribute"
                                         >
-                                            -
-                                        </button>
+                                            <Trash2 size={16}/>
+                                        </Button>
                                     )}
                                 </div>
                             ))}
+                            </div>
                         </div>
 
-                        <button 
+                        <Button
                             type="submit"
-                            className="w-full bg-yellow-600 hover:bg-yellow-700 p-3 rounded font-bold transition-colors text-lg"
+                            disabled={isSaving}
+                            className="mt-2 font-bold w-full transition-all duration-300
+                                hover:bg-zinc-800
+                                hover:shadow-[0_0_20px_rgba(255,255,255,0.15)]"
                         >
-                            Save Template & Enter Table
-                        </button>
+                            {isSaving ? "Saving..." : "Save Template & Enter Table"}
+                        </Button>
                     </form>
                 </div>
             </div>
