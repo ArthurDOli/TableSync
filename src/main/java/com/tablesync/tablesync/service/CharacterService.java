@@ -41,7 +41,6 @@ public class CharacterService {
         validateUserIsParticipant(currentUser.getId(), session.getId());
 
         CharacterTemplate template = null;
-
         if (request.getTemplateId() != null) {
             template = findTemplateById(request.getTemplateId());
             validateTemplateBelongsToSession(template, session);
@@ -81,15 +80,15 @@ public class CharacterService {
     public CharacterResponse updateCharacter(UUID characterId, UpdateCharacterRequest request) {
         log.info("Updating character {}", characterId);
 
+        User currentUser = getCurrentAuthenticatedUser();
         PlayerCharacter character = findCharacterById(characterId);
 
-        validateCharacterOwnership(character);
+        validateUserIsParticipant(currentUser.getId(), character.getSession().getId());
 
         updateCharacterFields(character, request);
         PlayerCharacter updatedCharacter = characterRepository.save(character);
 
         log.info("Character updated successfully: {}", characterId);
-
         return CharacterResponse.fromEntity(updatedCharacter, objectMapper);
     }
 
@@ -97,14 +96,15 @@ public class CharacterService {
     public CharacterResponse partialUpdateCharacter(UUID characterId, UpdateCharacterRequest request) {
         log.info("Partially updating character {}", characterId);
 
+        User currentUser = getCurrentAuthenticatedUser();
         PlayerCharacter character = findCharacterById(characterId);
 
-        validateCharacterOwnership(character);
+        validateUserIsParticipant(currentUser.getId(), character.getSession().getId());
 
-        updateCharacterFieldsPartially(character, request);
+        updateCharacterFields(character, request);
         PlayerCharacter updatedCharacter = characterRepository.save(character);
 
-        log.info("Character partially updated: {}", updatedCharacter);
+        log.info("Character partially updated: {}", characterId);
         return CharacterResponse.fromEntity(updatedCharacter, objectMapper);
     }
 
@@ -112,8 +112,10 @@ public class CharacterService {
     public void deleteCharacter(UUID id) {
         log.info("Deleting character {}", id);
 
+        User currentUser = getCurrentAuthenticatedUser();
         PlayerCharacter character = findCharacterById(id);
-        validateCharacterOwnership(character);
+
+        validateCharacterOwnership(character, currentUser);
 
         characterRepository.delete(character);
         log.info("Character deleted successfully: {}", id);
@@ -124,12 +126,11 @@ public class CharacterService {
                 .orElseThrow(() -> new ResourceNotFoundException("Character", "id", id));
     }
 
-    private void validateCharacterOwnership(PlayerCharacter character) {
-        User currentUser = getCurrentAuthenticatedUser();
+    private void validateCharacterOwnership(PlayerCharacter character, User currentUser) {
         if (!character.getUser().getId().equals(currentUser.getId())) {
-            log.warn("User {} attempted to modify character {} owned by user {}",
+            log.warn("User {} attempted to delete character {} owned by user {}",
                     currentUser.getId(), character.getId(), character.getUser().getId());
-            throw new ForbiddenException("You can only modify your own characters");
+            throw new ForbiddenException("You can only delete your own characters");
         }
     }
 
@@ -137,42 +138,30 @@ public class CharacterService {
         if (request.getName() != null) {
             character.setName(request.getName());
         }
-
         if (request.getImageUrl() != null) {
             character.setImageUrl(request.getImageUrl());
         }
-
         if (request.getSheetData() != null) {
             character.setSheetData(convertMapToJsonString(request.getSheetData()));
         }
-
         if (request.getTokenScale() != null) {
             character.setTokenScale(request.getTokenScale());
         }
-
         if (request.getTokenX() != null) {
             character.setTokenX(request.getTokenX());
         }
-
         if (request.getTokenY() != null) {
             character.setTokenY(request.getTokenY());
         }
-
         if (request.getImageScale() != null) {
             character.setImageScale(request.getImageScale());
         }
-
         if (request.getImageOffsetX() != null) {
             character.setImageOffsetX(request.getImageOffsetX());
         }
-
         if (request.getImageOffsetY() != null) {
             character.setImageOffsetY(request.getImageOffsetY());
         }
-    }
-
-    private void updateCharacterFieldsPartially(PlayerCharacter character, UpdateCharacterRequest request) {
-        updateCharacterFields(character, request);
     }
 
     private void validateSessionExistsById(UUID sessionId) {
@@ -197,8 +186,8 @@ public class CharacterService {
                 .orElseThrow(() -> new ResourceNotFoundException("Template", "id", templateId));
     }
 
-    private void validateUserIsParticipant(Long userId, UUID sessionID) {
-        if (!participantRepository.existsByUserIdAndSessionId(userId, sessionID)) {
+    private void validateUserIsParticipant(Long userId, UUID sessionId) {
+        if (!participantRepository.existsByUserIdAndSessionId(userId, sessionId)) {
             throw new IllegalArgumentException("User is not a participant of this session");
         }
     }
@@ -224,9 +213,9 @@ public class CharacterService {
                 .build();
     }
 
-    private String convertMapToJsonString(Map<String, Object> mapper) {
+    private String convertMapToJsonString(Map<String, Object> map) {
         try {
-            return objectMapper.writeValueAsString(mapper);
+            return objectMapper.writeValueAsString(map);
         } catch (JsonProcessingException e) {
             log.error("Error converting map to JSON", e);
             throw new IllegalArgumentException("Invalid sheet data structure", e);
