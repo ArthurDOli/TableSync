@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Ghost, Sparkles, ImageIcon, User, Swords } from "lucide-react";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 type Template = {
     id: string;
@@ -98,7 +99,7 @@ export function SessionCreate() {
     if (!template) {
         return (
             <div className="min-h-screen bg-black
-                bg-[linear-gradient(to__right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)]
+                bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)]
                 bg-[size:128px_128px] flex flex-col items-center justify-center text-center px-4"
             >
                 <div className="bg-[rgb(5,5,6)] border border-zinc-800 p-12 rounded-2xl shadow-2xl flex flex-col items-center max-w-md
@@ -140,7 +141,7 @@ export function SessionCreate() {
     return (
         <div className="flex h-screen bg-black text-white overflow-hidden relative">
             <div className="w-full lg:w-1/2 h-full flex flex-col items-center overflow-y-auto px-6 py-12 z-10
-                bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px),transparent_1px)]
+                bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)]
                 bg-[size:128px_128px]"
             >
                 <div className="w-full max-w-md">
@@ -287,19 +288,19 @@ export function SessionCreate() {
                 </div>
             </div>
 
-            <div className="hidden lg:flex w-1/2 h-full bg-zinc-950 flex-col items-center justify-start relative border-l border-zinc-900
+            <div className="hidden lg:flex w-1/2 h-full bg-zinc-950 flex-col items-center justify-center relative border-l border-zinc-900
                 shadow-[-20px_0_50px_rgba(0,0,0,0.5)] z-20 overflow-y-auto"
             >
-                <div className="absolute top-10 text-center">
+                <div className="absolute top-14 text-center">
                     <p className="text-zinc-500 font-mono tracking-[0.2em] text-sm uppercase">
                         Live Token Preview
                     </p>
                 </div>
 
-                <div className="flex flex-col items-center w-full px-8 py-24 animate-in zoom-in-95 duration-500">
+                <div className="flex flex-col items-center w-full px-8 pt-16 pb-8 animate-in zoom-in-95 duration-500">
                     <div className="w-64 h-64 shrink-0 rounded-full border-4 border-zinc-800 overflow-hidden flex items-center
                         justify-center relative group
-                        shadow-[0_0-50px_rgba(0,0,0,0.3)]
+                        shadow-[0_0_50px_rgba(0,0,0,0.3)]
                         bg-[rgb(5,5,6)]"
                     >
                         {imageUrl ? (
@@ -329,21 +330,42 @@ export function SessionCreate() {
                         </span>
                     </div>
 
-                    <div className="mt-8 flex flex-wrap justify-center gap-3 w-full max-w-lg">
-                        {Object.keys(sheetData).map(key => (
-                            sheetData[key] && (
-                                <div 
-                                    key={key} 
-                                    className="bg-zinc-900/80 border border-zinc-800 px-3 py-2 rounded-lg text-sm flex items-center gap-2 max-w-[200px] shadow-sm"
-                                >
-                                    <span className="text-zinc-500 uppercase tracking-wider text-xs shrink-0">{key}:</span>
-                                    <span className="font-medium text-blue-400 truncate" title={sheetData[key]}>
-                                        {sheetData[key]}
-                                    </span>
-                                </div>
-                            )
-                        ))}
-                    </div>
+                    <TooltipProvider delayDuration={200}>
+                        <div className="mt-8 flex flex-wrap justify-center gap-3 w-full max-w-lg">
+                            {Object.keys(sheetData).map(key => {
+                                if (!sheetData[key]) return null;
+
+                                return (
+                                    <Tooltip key={key}>
+                                        <TooltipTrigger asChild>
+                                            <div className="bg-zinc-900/80 border border-zinc-800 px-3 py-2 rounded-lg text-sm flex
+                                                flex-col items-center gap-1 max-w-[200px] shadow-sm cursor-help transition-colors
+                                                hover:border-zinc-700"
+                                            >
+                                                <span className="text-zinc-500 uppercase tracking-wider text-xs">
+                                                    {key}
+                                                </span>
+
+                                                <span className="font-medium text-blue-400 truncate w-full text-center">
+                                                    {sheetData[key]}
+                                                </span>
+                                            </div>
+                                        </TooltipTrigger>
+
+                                        <TooltipContent
+                                            side="bottom"
+                                            className="bg-zinc-800 border-zinc-700 text-zinc-200 max-w-[300px] whitespace-pre-wrap 
+                                                break-all text-xs p-3 shadow-xl animate-in zoom-in-95
+                                                data-[state=closed]:animate-out
+                                                data-[state=closed]:zoom-out-95"
+                                        >
+                                            <p className="leading-relaxed">{sheetData[key]}</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                );
+                            })}
+                        </div>
+                    </TooltipProvider>
                 </div>
             </div>
         </div>
