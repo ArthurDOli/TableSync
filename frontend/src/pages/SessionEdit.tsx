@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { api } from "../services/api";
-import { Plus, Trash2, FileText, Settings2, AlertCircle } from "lucide-react";
+import { Plus, Trash2, FileText, Settings2, AlertCircle, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field, FieldGroup, FieldLabel, FieldDescription } from "@/components/ui/field";
@@ -78,6 +78,16 @@ export function SessionEdit() {
             bg-[size:128px_128px]"
         >
             <div className="w-full max-w-2xl flex items-center gap-3 mb-8">
+                <button
+                    onClick={() => navigate('/dashboard')}
+                    title="Back to Dashboard"
+                    className="text-red-500 rounded-lg p-2 border border-red-800 bg-zinc-900/50 transition-colors
+                        hover:bg-red-800 hover:text-white shrink-0
+                        hover:shadow-[0_0_20px_rgba(220,38,38,0.5)]"
+                >
+                    <ArrowLeft size={18}/>
+                </button>
+
                 <div className="bg-zinc-800/50 p-3 rounded-lg border border-zinc-700/50">
                     <Settings2 className="text-zinc-300" size={28} />
                 </div>

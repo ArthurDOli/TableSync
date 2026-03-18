@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { api } from "../services/api";
 import { Button } from "@/components/ui/button";
-import { Ghost, Sparkles, ImageIcon, User, Swords, AlertCircle } from "lucide-react";
+import { Ghost, Sparkles, ImageIcon, User, Swords, AlertCircle, ArrowLeft } from "lucide-react";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -176,6 +176,17 @@ export function SessionCreate() {
                 bg-[size:128px_128px]"
             >
                 <div className="w-full max-w-md">
+                    <div className="mb-6 flex items-center">
+                        <button
+                            onClick={() => navigate('/dashboard')}
+                            title="Back to Dashboard"
+                            className="text-zinc-500 rounded-lg p-2 border border-zinc-800 bg-zinc-900/50 transition-colors
+                                hover:bg-zinc-800 hover:text-white"
+                        >
+                            <ArrowLeft size={18}/>
+                        </button>
+                    </div>
+
                     <div className="mb-10 text-center">
                         <h1 className="text-3xl font-extrabold tracking-tight text-zinc-100 mb-2">
                             Forge your Hero

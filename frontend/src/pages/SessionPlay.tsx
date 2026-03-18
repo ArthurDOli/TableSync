@@ -4,7 +4,7 @@ import { api } from "../services/api";
 import { Client } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 import { Tabletop } from "../components/Tabletop";
-import { PanelRightClose, PanelRightOpen, PanelLeftClose, PanelLeftOpen, Send, Save, ScrollText, LayoutDashboard } from "lucide-react";
+import { PanelRightClose, PanelRightOpen, PanelLeftClose, PanelLeftOpen, Send, Save, ScrollText, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -226,16 +226,8 @@ export function SessionPlay() {
                 }`}
             >
                 <div className="w-[380px] flex flex-col h-full">
-
-                    <div className="p-3 border-b border-zinc-800 flex justify-between items-center shrink-0">
-                        <button
-                            onClick={() => setShowCharSheet(false)}
-                            className="text-zinc-500 rounded p-1 transition-colors hover:text-white"
-                        >
-                            <PanelLeftClose size={20}/>
-                        </button>
-
-                        <div className="flex items-center gap-2">
+                    <div className="p-3 border-b border-zinc-800 flex items-center shrink-0">
+                        <div className="flex items-center gap-2 justify-center w-full">
                             <ScrollText size={14} className="text-zinc-500"/>
                             <p className="text-xs text-zinc-400 font-medium uppercase tracking-wider">
                                 {isMaster ? 'Template' : 'Character Sheet'}
@@ -253,7 +245,7 @@ export function SessionPlay() {
                                 {saveButtonLabel}
                             </Button>
                         ) : (
-                            <div className="w-[72px]" />
+                            <div/>
                         )}
                     </div>
 
@@ -361,11 +353,13 @@ export function SessionPlay() {
 
                 <div className="absolute top-4 left-4 z-20 flex items-center gap-1 bg-[rgb(5,5,6)] p-1.5 rounded-xl border border-zinc-800 shadow-xl">
                     <button
-                        onClick={() => navigate('/dashboard')}
-                        title="Back to Dashboard"
-                        className="text-zinc-400 rounded-lg p-1.5 transition-colors hover:bg-zinc-800 hover:text-white"
+                    onClick={() => navigate('/dashboard')}
+                    title="Back to Dashboard"
+                    className="text-red-500 rounded-lg p-2 border border-red-800 bg-zinc-900/50 transition-colors
+                        hover:bg-red-800 hover:text-white shrink-0
+                        hover:shadow-[0_0_20px_rgba(220,38,38,0.5)]"
                     >
-                        <LayoutDashboard size={18}/>
+                        <ArrowLeft size={14}/>
                     </button>
 
                     <div className="w-px h-5 bg-zinc-800"/>
@@ -373,7 +367,7 @@ export function SessionPlay() {
                     <button
                         onClick={() => setShowCharSheet(prev => !prev)}
                         title={showCharSheet ? 'Close character sheet' : 'Open character sheet'}
-                        className="text-zinc-400 rounded-lg p-1.5 transition-colors hover:bg-zinc-800 hover:text-white"
+                        className="text-zinc-400 rounded-lg p-2 transition-colors hover:bg-zinc-800 hover:text-white border-zinc-800 border"
                     >
                         {showCharSheet ? <PanelLeftClose size={18}/> : <PanelLeftOpen size={18}/>}
                     </button>
@@ -382,7 +376,7 @@ export function SessionPlay() {
                 {!showSidebar && (
                     <button
                         onClick={() => setShowSidebar(true)}
-                        className="absolute right-0 top-[68px] bg-[rgb(5,5,6)] p-2 rounded-l-lg border border-r-0
+                        className="absolute right-0 top-1/2 -translate-y-1/2 bg-[rgb(5,5,6)] p-2 rounded-l-lg border border-r-0
                             border-zinc-800 z-10 text-zinc-400
                             hover:bg-zinc-800
                             hover:text-white
