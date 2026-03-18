@@ -1,10 +1,10 @@
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import { api } from "../services/api";
 import { Client } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 import { Tabletop } from "../components/Tabletop";
-import { PanelRightClose, PanelRightOpen, PanelLeftClose, PanelLeftOpen, Send, Save, ScrollText } from "lucide-react";
+import { PanelRightClose, PanelRightOpen, PanelLeftClose, PanelLeftOpen, Send, Save, ScrollText, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -44,6 +44,7 @@ const TOKEN_COLORS = [
 
 export function SessionPlay() {
     const { id } = useParams();
+    const navigate = useNavigate();
 
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [currentMessage, setCurrentMessage] = useState('');
@@ -358,23 +359,30 @@ export function SessionPlay() {
                     initialScale={initialBgScale}
                 />
 
-                {!showCharSheet && (
+                <div className="absolute top-4 left-4 z-20 flex items-center gap-1 bg-[rgb(5,5,6)] p-1.5 rounded-xl border border-zinc-800 shadow-xl">
                     <button
-                        onClick={() => setShowCharSheet(true)}
-                        className="absolute left-0 top-3 bg-[rgb(5,5,6)] p-2 rounded-r-lg border border-l-0
-                            border-zinc-800 z-10 text-zinc-400
-                            hover:bg-zinc-800
-                            hover:text-white
-                            shadow-[5px_0_20px_rgba(0,0,0,0.3)]"
+                        onClick={() => navigate('/dashboard')}
+                        title="Back to Dashboard"
+                        className="text-zinc-400 rounded-lg p-1.5 transition-colors hover:bg-zinc-800 hover:text-white"
                     >
-                        <PanelLeftOpen size={24}/>
+                        <LayoutDashboard size={18}/>
                     </button>
-                )}
+
+                    <div className="w-px h-5 bg-zinc-800"/>
+
+                    <button
+                        onClick={() => setShowCharSheet(prev => !prev)}
+                        title={showCharSheet ? 'Close character sheet' : 'Open character sheet'}
+                        className="text-zinc-400 rounded-lg p-1.5 transition-colors hover:bg-zinc-800 hover:text-white"
+                    >
+                        {showCharSheet ? <PanelLeftClose size={18}/> : <PanelLeftOpen size={18}/>}
+                    </button>
+                </div>
 
                 {!showSidebar && (
                     <button
                         onClick={() => setShowSidebar(true)}
-                        className="absolute right-0 top-3 bg-[rgb(5,5,6)] p-2 rounded-l-lg border border-r-0
+                        className="absolute right-0 top-[68px] bg-[rgb(5,5,6)] p-2 rounded-l-lg border border-r-0
                             border-zinc-800 z-10 text-zinc-400
                             hover:bg-zinc-800
                             hover:text-white
