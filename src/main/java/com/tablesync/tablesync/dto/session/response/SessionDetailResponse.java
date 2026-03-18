@@ -22,6 +22,7 @@ public class SessionDetailResponse {
     private Long masterId;
     private String status;
     private String backgroundImageUrl;
+    private Double backgroundImageScale;
     private LocalDateTime createdAt;
     private List<ParticipantResponse> participants;
     private Integer totalCharacters;
@@ -41,6 +42,7 @@ public class SessionDetailResponse {
                 .masterId(session.getMaster().getId())
                 .status(session.getStatus().name())
                 .backgroundImageUrl(session.getBackgroundImageUrl())
+                .backgroundImageScale(session.getBackgroundImageScale())
                 .createdAt(session.getCreatedAt())
                 .participants(participants)
                 .totalCharacters(totalCharacters)

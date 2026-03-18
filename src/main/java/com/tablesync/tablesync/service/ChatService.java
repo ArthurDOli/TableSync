@@ -47,7 +47,11 @@ public class ChatService {
 
         validateUserIsParticipant(currentUser.getId(), session.getId());
         validateSessionHasTemplate(session.getId());
-        validateUserHasCharacter(currentUser.getId(), session.getId());
+
+        boolean isMaster = session.getMaster().getId().equals(currentUser.getId());
+        if (!isMaster) {
+            validateUserHasCharacter(currentUser.getId(), session.getId());
+        }
 
         processDiceRolls(request);
 

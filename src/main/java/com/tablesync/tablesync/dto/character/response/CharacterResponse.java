@@ -24,15 +24,19 @@ public class CharacterResponse {
     private UUID templateId;
     private String imageUrl;
     private Map<String, Object> sheetData;
+    private Double tokenX;
+    private Double tokenY;
 
     public static CharacterResponse fromEntity(PlayerCharacter character, ObjectMapper mapper) {
         return CharacterResponse.builder()
                 .id(character.getId())
                 .name(character.getName())
-                .playerName(character.getUser().getUsername())
+                .playerName(character.getUser().getRealUsername())
                 .templateId(character.getTemplate() != null ? character.getTemplate().getId() : null)
                 .imageUrl(character.getImageUrl())
                 .sheetData(parseJsonToMap(character.getSheetData(), mapper))
+                .tokenX(character.getTokenX())
+                .tokenY(character.getTokenY())
                 .build();
     }
 
