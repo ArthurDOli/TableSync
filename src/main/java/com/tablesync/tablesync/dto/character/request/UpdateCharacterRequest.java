@@ -25,4 +25,10 @@ public class UpdateCharacterRequest {
     private Double tokenX;
 
     private Double tokenY;
+
+    private Double imageScale;
+
+    private Double imageOffsetX;
+
+    private Double imageOffsetY;
 }

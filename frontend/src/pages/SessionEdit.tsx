@@ -160,7 +160,10 @@ export function SessionEdit() {
                                             variant="ghost"
                                             size="icon"
                                             onClick={() => handleRemoveField(index)}
-                                            className="shrink-0 text-zinc-500 border border-transparent transition-all hover:text-red-400 hover:bg-red-500/10 hover:border-red-500/20"
+                                            className="shrink-0 text-zinc-500 border border-transparent transition-all 
+                                                hover:text-red-400 
+                                                hover:bg-red-500/10 
+                                                hover:border-red-500/20"
                                             title="Remove attribute"
                                         >
                                             <Trash2 size={16}/>
@@ -171,7 +174,9 @@ export function SessionEdit() {
                         </div>
                     </div>
 
-                    <div className="mt-4 pt-6 border-t border-zinc-800/80 flex flex-col gap-4">
+                    <hr className="border-zinc-800/80 -mx-8" />
+
+                    <div className="flex flex-col gap-4">
                         {errorMsg && (
                             <div className="flex items-center gap-2 text-red-400 bg-red-500/10 border border-red-500/20 p-3
                                 rounded-lg text-sm animate-in fade-in zoom-in-95">

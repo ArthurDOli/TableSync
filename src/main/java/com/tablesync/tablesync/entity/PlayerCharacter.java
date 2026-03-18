@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.*;
+import org.hibernate.annotations.DynamicUpdate;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -14,6 +15,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 @Entity
+@DynamicUpdate
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @Table(name = "player_characters")
 public class PlayerCharacter {
@@ -53,4 +55,13 @@ public class PlayerCharacter {
     private Double tokenY;
 
     private String imageUrl;
+
+    @Builder.Default
+    private Double imageScale = 1.0;
+
+    @Builder.Default
+    private Double imageOffsetX = 50.0;
+
+    @Builder.Default
+    private Double imageOffsetY = 50.0;
 }

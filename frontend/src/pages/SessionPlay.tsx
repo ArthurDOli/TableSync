@@ -4,7 +4,7 @@ import { api } from "../services/api";
 import { Client } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 import { Tabletop } from "../components/Tabletop";
-import { PanelRightClose, PanelRightOpen, Send } from "lucide-react";
+import { PanelRightClose, PanelRightOpen, PanelLeftClose, PanelLeftOpen, Send, Save, ScrollText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -22,6 +22,19 @@ type Character = {
     id: string;
     name: string;
     playerName: string;
+    tokenX?: number;
+    tokenY?: number;
+    imageUrl?: string;
+    imageScale?: number;
+    imageOffsetX?: number;
+    imageOffsetY?: number;
+    sheetData?: Record<string, unknown>;
+};
+
+type Template = {
+    id: string;
+    name: string;
+    schema: Record<string, string>;
 };
 
 const TOKEN_COLORS = [
@@ -31,17 +44,29 @@ const TOKEN_COLORS = [
 
 export function SessionPlay() {
     const { id } = useParams();
+
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [currentMessage, setCurrentMessage] = useState('');
     const [stompClient, setStompClient] = useState<Client | null>(null);
     const [isConnected, setIsConnected] = useState(false);
+    const chatContainerRef = useRef<HTMLDivElement>(null);
+
     const [myCharacterName, setMyCharacterName] = useState('Master');
     const [characters, setCharacters] = useState<Character[]>([]);
     const [isMaster, setIsMaster] = useState(false);
-    const [showSidebar, setShowSidebar] = useState(true);
     const [initialBgUrl, setInitialBgUrl] = useState('');
     const [initialBgScale, setInitialBgScale] = useState(1);
-    const chatContainerRef = useRef<HTMLDivElement>(null);
+
+    const [showCharSheet, setShowCharSheet] = useState(true);
+    const [showSidebar, setShowSidebar] = useState(true);
+
+    const [myCharacterId, setMyCharacterId] = useState<string | null>(null);
+    const [myCharacterImageUrl, setMyCharacterImageUrl] = useState('');
+    const [charSheetData, setCharSheetData] = useState<Record<string, string>>({});
+    const [isSavingSheet, setIsSavingSheet] = useState(false);
+    const [saveStatus, setSaveStatus] = useState<'idle' | 'saved' | 'error'>('idle');
+
+    const [template, setTemplate] = useState<Template | null>(null);
 
     const currentUsername = localStorage.getItem('username');
     const currentUserId = Number(localStorage.getItem('userId'));
@@ -58,12 +83,16 @@ export function SessionPlay() {
                 const sessionRes = await api.get(`/sessions/${id}`);
                 const isMasterUser = currentUserId === sessionRes.data.masterId;
                 setIsMaster(isMasterUser);
-
                 setInitialBgUrl(sessionRes.data.backgroundImageUrl || '');
                 setInitialBgScale(sessionRes.data.backgroundImageScale || 1);
 
                 if (isMasterUser) {
                     setMyCharacterName('Master');
+
+                    const templateRes = await api.get(`/templates/session/${id}`);
+                    if (templateRes.data && templateRes.data.length > 0) {
+                        setTemplate(templateRes.data[0]);
+                    }
                 } else {
                     setMyCharacterName('Loading...');
                 }
@@ -71,11 +100,21 @@ export function SessionPlay() {
                 const charResponse = await api.get(`/characters/session/${id}`);
                 setCharacters(charResponse.data);
 
-                const myCharacter = charResponse.data.find(
+                const myCharacter: Character | undefined = charResponse.data.find(
                     (char: Character) => char.playerName === currentUsername
                 );
+
                 if (myCharacter) {
                     setMyCharacterName(myCharacter.name);
+                    setMyCharacterId(myCharacter.id);
+                    setMyCharacterImageUrl(myCharacter.imageUrl ?? '');
+
+                    const rawSheet = myCharacter.sheetData ?? {};
+                    const stringSheet: Record<string, string> = {};
+                    Object.keys(rawSheet).forEach(key => {
+                        stringSheet[key] = String(rawSheet[key] ?? '');
+                    });
+                    setCharSheetData(stringSheet);
                 }
 
                 const historyRes = await api.get(`/chat/history/${id}?size=50`);
@@ -111,6 +150,27 @@ export function SessionPlay() {
         return () => { client.deactivate(); };
     }, [id]);
 
+    async function handleSaveSheet() {
+        if (!myCharacterId) return;
+        setIsSavingSheet(true);
+        setSaveStatus('idle');
+        try {
+            await api.patch(`/characters/${myCharacterId}`, { sheetData: charSheetData });
+            setSaveStatus('saved');
+            setTimeout(() => setSaveStatus('idle'), 2000);
+        } catch (error) {
+            console.error("Error saving sheet:", error);
+            setSaveStatus('error');
+            setTimeout(() => setSaveStatus('idle'), 2500);
+        } finally {
+            setIsSavingSheet(false);
+        }
+    }
+
+    function handleSheetFieldChange(key: string, value: string) {
+        setCharSheetData(prev => ({ ...prev, [key]: value }));
+    }
+
     function handleSendMessage(e: React.FormEvent) {
         e.preventDefault();
         if (!currentMessage.trim() || !stompClient || !isConnected) return;
@@ -137,15 +197,155 @@ export function SessionPlay() {
 
     function getCharacterColor(charName: string) {
         if (charName === 'Master') return '#eab308';
-
         const index = characters.findIndex(c => c.name === charName);
         if (index === -1) return '#a1a1aa';
-
         return TOKEN_COLORS[index % TOKEN_COLORS.length];
     }
 
+    const saveButtonLabel = isSavingSheet
+        ? 'Saving...'
+        : saveStatus === 'saved'
+        ? 'Saved!'
+        : saveStatus === 'error'
+        ? 'Error!'
+        : 'Save';
+
+    const saveButtonClass = saveStatus === 'saved'
+        ? 'bg-emerald-600 hover:bg-emerald-600'
+        : saveStatus === 'error'
+        ? 'bg-red-600 hover:bg-red-600'
+        : 'bg-emerald-700 hover:bg-emerald-600 hover:shadow-[0_0_15px_rgba(16,185,129,0.35)]';
+
     return (
         <div className="flex h-screen w-screen bg-zinc-900 text-white overflow-hidden">
+
+            <div
+                className={`flex flex-col bg-[rgb(5,5,6)] border-zinc-800 shrink-0 transition-all duration-300 ease-in-out overflow-hidden ${
+                    showCharSheet ? 'w-[380px] border-r opacity-100' : 'w-0 border-none opacity-0'
+                }`}
+            >
+                <div className="w-[380px] flex flex-col h-full">
+
+                    <div className="p-3 border-b border-zinc-800 flex justify-between items-center shrink-0">
+                        <button
+                            onClick={() => setShowCharSheet(false)}
+                            className="text-zinc-500 rounded p-1 transition-colors hover:text-white"
+                        >
+                            <PanelLeftClose size={20}/>
+                        </button>
+
+                        <div className="flex items-center gap-2">
+                            <ScrollText size={14} className="text-zinc-500"/>
+                            <p className="text-xs text-zinc-400 font-medium uppercase tracking-wider">
+                                {isMaster ? 'Template' : 'Character Sheet'}
+                            </p>
+                        </div>
+
+                        {!isMaster ? (
+                            <Button
+                                onClick={handleSaveSheet}
+                                disabled={isSavingSheet}
+                                size="sm"
+                                className={`h-7 px-3 text-xs font-bold text-white transition-all ${saveButtonClass}`}
+                            >
+                                <Save size={13} className="mr-1"/>
+                                {saveButtonLabel}
+                            </Button>
+                        ) : (
+                            <div className="w-[72px]" />
+                        )}
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 scroll-smooth">
+
+                        {!isMaster && (
+                            <>
+                                <div className="flex items-center gap-3 bg-zinc-900/50 border border-zinc-800 rounded-xl p-3">
+                                    <div className="w-12 h-12 shrink-0 rounded-full border-2 border-zinc-700 overflow-hidden bg-zinc-800 flex items-center justify-center">
+                                        {myCharacterImageUrl ? (
+                                            <img
+                                                src={myCharacterImageUrl}
+                                                alt={myCharacterName}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        ) : (
+                                            <span className="text-lg font-black text-zinc-600 select-none">
+                                                {myCharacterName.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || '?'}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="min-w-0">
+                                        <p className="text-sm font-bold text-zinc-100 truncate">{myCharacterName || '—'}</p>
+                                        <p className="text-xs text-zinc-500 truncate">{currentUsername}</p>
+                                    </div>
+                                </div>
+
+                                {Object.keys(charSheetData).length === 0 ? (
+                                    <div className="flex flex-col items-center justify-center flex-1 text-center text-zinc-600 gap-2 py-8">
+                                        <ScrollText size={32} className="opacity-30"/>
+                                        <p className="text-sm">No sheet data available.</p>
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col gap-3">
+                                        {Object.keys(charSheetData).map(key => (
+                                            <div key={key} className="flex flex-col gap-1">
+                                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-1">
+                                                    {key}
+                                                </label>
+                                                <Input
+                                                    type="text"
+                                                    value={charSheetData[key]}
+                                                    onChange={e => handleSheetFieldChange(key, e.target.value)}
+                                                    className="h-9 bg-zinc-900/60 border-zinc-800 text-zinc-200 text-sm
+                                                        focus-visible:ring-emerald-600 focus-visible:border-emerald-700/50"
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </>
+                        )}
+
+                        {isMaster && (
+                            <>
+                                <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-3">
+                                    <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">
+                                        Template Name
+                                    </p>
+                                    <p className="text-sm font-bold text-zinc-100">
+                                        {template?.name ?? '—'}
+                                    </p>
+                                </div>
+
+                                {!template || Object.keys(template.schema).length === 0 ? (
+                                    <div className="flex flex-col items-center justify-center flex-1 text-center text-zinc-600 gap-2 py-8">
+                                        <ScrollText size={32} className="opacity-30"/>
+                                        <p className="text-sm">No template fields defined.</p>
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col gap-2">
+                                        <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-1">
+                                            Fields
+                                        </p>
+                                        {Object.keys(template.schema).map((key, index) => (
+                                            <div
+                                                key={key}
+                                                className="flex items-center gap-3 bg-zinc-900/40 border border-zinc-800/80
+                                                    rounded-lg px-3 py-2"
+                                            >
+                                                <span className="text-[10px] text-zinc-600 font-mono w-5 text-right shrink-0">
+                                                    {index + 1}
+                                                </span>
+                                                <span className="text-sm text-zinc-300 font-medium">{key}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </>
+                        )}
+                    </div>
+                </div>
+            </div>
 
             <div className="flex-1 relative flex flex-col overflow-hidden">
                 <Tabletop
@@ -157,6 +357,19 @@ export function SessionPlay() {
                     initialBackground={initialBgUrl}
                     initialScale={initialBgScale}
                 />
+
+                {!showCharSheet && (
+                    <button
+                        onClick={() => setShowCharSheet(true)}
+                        className="absolute left-0 top-3 bg-[rgb(5,5,6)] p-2 rounded-r-lg border border-l-0
+                            border-zinc-800 z-10 text-zinc-400
+                            hover:bg-zinc-800
+                            hover:text-white
+                            shadow-[5px_0_20px_rgba(0,0,0,0.3)]"
+                    >
+                        <PanelLeftOpen size={24}/>
+                    </button>
+                )}
 
                 {!showSidebar && (
                     <button
@@ -186,9 +399,7 @@ export function SessionPlay() {
                         </div>
                         <button
                             onClick={() => setShowSidebar(false)}
-                            className="text-zinc-500 rounded p-1 transition-colors
-                                hover:text-white
-                                hover-bg-zinc-800"
+                            className="text-zinc-500 rounded p-1 transition-colors hover:text-white"
                         >
                             <PanelRightClose size={20}/>
                         </button>
@@ -234,14 +445,14 @@ export function SessionPlay() {
                                         {msg.characterName}{' '}
                                         <span className="text-zinc-500 text-xs font-normal">
                                             ({msg.username})
-                                        </span>                                        
+                                        </span>
                                     </span>
 
                                     <p className="text-zinc-300 text-sm leading-relaxed">
                                         {msg.content}
                                     </p>
                                 </div>
-                            )
+                            );
                         })}
                     </div>
 
@@ -255,7 +466,7 @@ export function SessionPlay() {
                             value={currentMessage}
                             onChange={(e) => setCurrentMessage(e.target.value)}
                             disabled={!isConnected}
-                            className="flex-1 bg-zinc-900/50 border-zinc-700 
+                            className="flex-1 bg-zinc-900/50 border-zinc-700
                             focus-visible:ring-blue-500
                             placeholder:text-zinc-600"
                         />

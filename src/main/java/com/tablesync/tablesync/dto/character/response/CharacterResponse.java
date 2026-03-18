@@ -23,6 +23,9 @@ public class CharacterResponse {
     private String playerName;
     private UUID templateId;
     private String imageUrl;
+    private Double imageScale;
+    private Double imageOffsetX;
+    private Double imageOffsetY;
     private Map<String, Object> sheetData;
     private Double tokenX;
     private Double tokenY;
@@ -34,6 +37,9 @@ public class CharacterResponse {
                 .playerName(character.getUser().getRealUsername())
                 .templateId(character.getTemplate() != null ? character.getTemplate().getId() : null)
                 .imageUrl(character.getImageUrl())
+                .imageScale(character.getImageScale())
+                .imageOffsetX(character.getImageOffsetX())
+                .imageOffsetY(character.getImageOffsetY())
                 .sheetData(parseJsonToMap(character.getSheetData(), mapper))
                 .tokenX(character.getTokenX())
                 .tokenY(character.getTokenY())
