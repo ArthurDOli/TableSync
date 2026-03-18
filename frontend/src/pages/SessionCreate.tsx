@@ -287,7 +287,7 @@ export function SessionCreate() {
                 </div>
             </div>
 
-            <div className="hidden lg:flex w-1/2 h-full bg-zinc-950 flex-col items-center justify-center relative border-l border-zinc-900
+            <div className="hidden lg:flex w-1/2 h-full bg-zinc-950 flex-col items-center justify-start relative border-l border-zinc-900
                 shadow-[-20px_0_50px_rgba(0,0,0,0.5)] z-20 overflow-y-auto"
             >
                 <div className="absolute top-10 text-center">
@@ -329,14 +329,17 @@ export function SessionCreate() {
                         </span>
                     </div>
 
-                    <div className="mt-8 flex flex-col items-center gap-3 w-full max-w-lg">
+                    <div className="mt-8 flex flex-wrap justify-center gap-3 w-full max-w-lg">
                         {Object.keys(sheetData).map(key => (
                             sheetData[key] && (
-                                <div key={key} className="bg-zinc-900/80 border border-zinc-800 px-4 py-3 rounded-lg text-sm w-full
-                                    text-center shadow-sm"
+                                <div 
+                                    key={key} 
+                                    className="bg-zinc-900/80 border border-zinc-800 px-3 py-2 rounded-lg text-sm flex items-center gap-2 max-w-[200px] shadow-sm"
                                 >
-                                    <span className="text-zinc-500 uppercase tracking-wider text-xs block mb-1">{key}</span>
-                                    <span className="font-medium text-blue-400 break-words">{sheetData[key]}</span>
+                                    <span className="text-zinc-500 uppercase tracking-wider text-xs shrink-0">{key}:</span>
+                                    <span className="font-medium text-blue-400 truncate" title={sheetData[key]}>
+                                        {sheetData[key]}
+                                    </span>
                                 </div>
                             )
                         ))}
