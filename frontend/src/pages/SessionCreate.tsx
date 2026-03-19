@@ -31,14 +31,23 @@ export function SessionCreate() {
 
     const [formError, setFormError] = useState('');
 
-    const currentUserId = Number(localStorage.getItem('userId'));
-
     useEffect(() => {
         async function fetchData() {
             try {
                 const sessionRes = await api.get(`/sessions/${id}`);
+                const currentUserId = Number(localStorage.getItem("userId"));
+
                 if (currentUserId === sessionRes.data.masterId) {
                     navigate(`/session/${id}/play`, { replace: true });
+                    return;
+                }
+
+                const charsRes = await api.get(`/characters/session/${id}`);
+                const username = localStorage.getItem("username");
+                const hasCharacter = charsRes.data.some((c: any) => c.playerName === username);
+
+                if (hasCharacter) {
+                    navigate(`/session/${id}/play`, { replace: true })
                     return;
                 }
 
@@ -56,12 +65,13 @@ export function SessionCreate() {
                 }
             } catch (error) {
                 console.error("Error fetching data", error);
+                navigate('/dashboard');
             } finally {
                 setIsLoading(false);
             }
         }
         fetchData();
-    }, [id, currentUserId, navigate]);
+    }, [id, navigate]);
 
     function handleFieldChange(key: string, value: string) {
         setSheetData(prev => ({
