@@ -176,25 +176,28 @@ export function SessionCreate() {
                 bg-[size:128px_128px]"
             >
                 <div className="w-full max-w-md">
-                    <div className="mb-6 flex items-center">
-                        <button
-                            onClick={() => navigate('/dashboard')}
-                            title="Back to Dashboard"
-                            className="text-zinc-500 rounded-lg p-2 border border-zinc-800 bg-zinc-900/50 transition-colors
-                                hover:bg-zinc-800 hover:text-white"
-                        >
-                            <ArrowLeft size={18}/>
-                        </button>
-                    </div>
+                    <div className="mb-10 relative flex items-center justify-center">                        
+                        <div className="absolute left-0">
+                            <button
+                                onClick={() => navigate('/dashboard')}
+                                title="Back to Dashboard"
+                                className="text-red-500 rounded-lg p-2 border border-red-800 bg-zinc-900/50 transition-colors
+                                    hover:bg-red-800 hover:text-white shrink-0
+                                    hover:shadow-[0_0_20px_rgba(220,38,38,0.5)]"
+                            >
+                                <ArrowLeft size={18}/>
+                            </button>
+                        </div>
 
-                    <div className="mb-10 text-center">
-                        <h1 className="text-3xl font-extrabold tracking-tight text-zinc-100 mb-2">
-                            Forge your Hero
-                        </h1>
+                        <div className="text-center">
+                            <h1 className="text-3xl font-extrabold tracking-tight text-zinc-100 mb-2">
+                                Forge your Hero
+                            </h1>
 
-                        <p className="text-zinc-400 text-sm">
-                            Using template: <span className="text-blue-400 font-semibold">{template.name}</span>
-                        </p>
+                            <p className="text-zinc-400 text-sm">
+                                Using template: <span className="text-blue-400 font-semibold">{template.name}</span>
+                            </p>
+                        </div>
                     </div>
 
                     <form
@@ -329,8 +332,9 @@ export function SessionCreate() {
                                 type="submit"
                                 disabled={isSaving}
                                 className="w-full h-12 bg-blue-700 text-white font-bold text-lg transition-all
-                                    shadow-[0_0_20px_rgba(37,99,235,0.2)]
-                                    hover:bg-blue-700"
+                                    hover:shadow-[0_0_20px_rgba(37,99,235,0.2)]
+                                    hover:bg-blue-600
+                                    hover:scale-101"
                             >
                                 {isSaving ? "Forging..." : "Join Tabletop"}
                             </Button>

@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -70,6 +71,9 @@ public class SessionService {
 
     @Transactional(readOnly = true)
     public SessionDetailResponse getSessionById(UUID sessionId) {
+        User currentUser = getCurrentAuthenticatedUser();
+        validateUserIsParticipant(currentUser.getId(), sessionId);
+
         GameSession session = findSessionById(sessionId);
 
         List<SessionParticipant> participants = participantRepository.findBySessionId(sessionId);
@@ -164,6 +168,12 @@ public class SessionService {
 
         participantRepository.delete(participant);
         log.info("Participant removed successfully");
+    }
+
+    private void validateUserIsParticipant(Long userId, UUID sessionId) {
+        if (!participantRepository.existsByUserIdAndSessionId(userId, sessionId)) {
+            throw new IllegalArgumentException("User is not a participant of this session");
+        }
     }
 
     private void updateSessionFields(GameSession session, UpdateSessionRequest request) {

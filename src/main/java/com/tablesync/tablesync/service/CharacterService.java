@@ -65,6 +65,9 @@ public class CharacterService {
 
     @Transactional(readOnly = true)
     public List<CharacterResponse> getCharactersBySession(UUID sessionId) {
+        User currentUser = getCurrentAuthenticatedUser();
+        validateUserIsParticipant(currentUser.getId(), sessionId);
+
         log.info("Fetching characters for session: {}", sessionId);
 
         validateSessionExistsById(sessionId);
