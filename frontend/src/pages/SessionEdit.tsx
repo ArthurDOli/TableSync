@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { api } from "../services/api";
 import { Plus, Trash2, FileText, Settings2, AlertCircle, ArrowLeft } from "lucide-react";
@@ -71,6 +71,34 @@ export function SessionEdit() {
             setIsSaving(false);
         }
     }
+
+    useEffect(() => {
+        async function verifyAccess() {
+            try {
+                const sessionRes = await api.get(`/sessions/${id}`);
+                const currentUserId = Number(localStorage.getItem('userId'));
+
+                const isMaster = sessionRes.data.masterId === currentUserId;
+                const isParticipant = sessionRes.data.participants.some((p: { userId: number }) => p.userId === currentUserId);
+
+                if (isMaster && sessionRes.data.totalTemplates > 0) {
+                    navigate(`/session/${id}/play`)
+                }
+
+                if (!isMaster && isParticipant) {
+                    navigate(`/session/${id}/play`);
+                }
+
+                if (!isMaster) {
+                    navigate("/dashboard");
+                    return;
+                }
+            } catch (erro) {
+                navigate("/dashboard")
+            }
+        }
+        verifyAccess();
+    }, [id, navigate])
 
     return (
         <div className="flex flex-col items-center min-h-screen overflow-y-auto bg-black text-white py-12 px-4
