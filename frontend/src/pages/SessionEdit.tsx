@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { api } from "../services/api";
-import { Plus, Trash2, FileText, Settings2, AlertCircle } from "lucide-react";
+import { Plus, Trash2, FileText, Settings2, AlertCircle, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field, FieldGroup, FieldLabel, FieldDescription } from "@/components/ui/field";
@@ -72,12 +72,50 @@ export function SessionEdit() {
         }
     }
 
+    useEffect(() => {
+        async function verifyAccess() {
+            try {
+                const sessionRes = await api.get(`/sessions/${id}`);
+                const currentUserId = Number(localStorage.getItem('userId'));
+
+                const isMaster = sessionRes.data.masterId === currentUserId;
+                const isParticipant = sessionRes.data.participants.some((p: { userId: number }) => p.userId === currentUserId);
+
+                if (isMaster && sessionRes.data.totalTemplates > 0) {
+                    navigate(`/session/${id}/play`)
+                }
+
+                if (!isMaster && isParticipant) {
+                    navigate(`/session/${id}/play`);
+                }
+
+                if (!isMaster) {
+                    navigate("/dashboard");
+                    return;
+                }
+            } catch (erro) {
+                navigate("/dashboard")
+            }
+        }
+        verifyAccess();
+    }, [id, navigate])
+
     return (
         <div className="flex flex-col items-center min-h-screen overflow-y-auto bg-black text-white py-12 px-4
             bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)]
             bg-[size:128px_128px]"
         >
             <div className="w-full max-w-2xl flex items-center gap-3 mb-8">
+                <button
+                    onClick={() => navigate('/dashboard')}
+                    title="Back to Dashboard"
+                    className="text-red-500 rounded-lg p-2 border border-red-800 bg-zinc-900/50 transition-colors
+                        hover:bg-red-800 hover:text-white shrink-0
+                        hover:shadow-[0_0_20px_rgba(220,38,38,0.5)]"
+                >
+                    <ArrowLeft size={18}/>
+                </button>
+
                 <div className="bg-zinc-800/50 p-3 rounded-lg border border-zinc-700/50">
                     <Settings2 className="text-zinc-300" size={28} />
                 </div>
@@ -188,7 +226,10 @@ export function SessionEdit() {
                         <Button
                             type="submit"
                             disabled={isSaving}
-                            className="w-full h-11 bg-zinc-100 text-zinc-900 font-bold transition-all duration-300 hover:bg-white hover:shadow-[0_0_20px_rgba(255,255,255,0.2)]"
+                            className="mt-2 w-full h-11 bg-zinc-100 text-zinc-900 font-bold transition-all duration-300
+                                hover:bg-white
+                                hover:scale-[1.02]
+                                hover:shadow-[0_0_20px_rgba(255,255,255,0.2)]"
                         >
                             {isSaving ? "Saving..." : "Save Template & Open Tabletop"}
                         </Button>

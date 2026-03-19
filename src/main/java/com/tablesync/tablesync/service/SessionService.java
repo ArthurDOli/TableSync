@@ -6,9 +6,7 @@ import com.tablesync.tablesync.dto.session.request.UpdateSessionRequest;
 import com.tablesync.tablesync.dto.session.response.ParticipantResponse;
 import com.tablesync.tablesync.dto.session.response.SessionDetailResponse;
 import com.tablesync.tablesync.dto.session.response.SessionResponse;
-import com.tablesync.tablesync.entity.GameSession;
-import com.tablesync.tablesync.entity.SessionParticipant;
-import com.tablesync.tablesync.entity.User;
+import com.tablesync.tablesync.entity.*;
 import com.tablesync.tablesync.enums.SessionRole;
 import com.tablesync.tablesync.enums.SessionStatus;
 import com.tablesync.tablesync.exception.ForbiddenException;
@@ -23,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -35,6 +34,7 @@ public class SessionService {
     private final PasswordEncoder passwordEncoder;
     private final PlayerCharacterRepository characterRepository;
     private final CharacterTemplateRepository characterTemplateRepository;
+    private final ChatMessageRepository chatMessageRepository;
 
     @Transactional
     public SessionResponse createSession(CreateSessionRequest request) {
@@ -70,6 +70,9 @@ public class SessionService {
 
     @Transactional(readOnly = true)
     public SessionDetailResponse getSessionById(UUID sessionId) {
+        User currentUser = getCurrentAuthenticatedUser();
+        validateUserIsParticipant(currentUser.getId(), sessionId);
+
         GameSession session = findSessionById(sessionId);
 
         List<SessionParticipant> participants = participantRepository.findBySessionId(sessionId);
@@ -148,6 +151,17 @@ public class SessionService {
         GameSession session = findSessionById(sessionId);
         validateMasterPermission(session);
 
+        List<PlayerCharacter> characters = characterRepository.findBySessionId(sessionId);
+        characterRepository.deleteAll(characters);
+
+        List<CharacterTemplate> templates = characterTemplateRepository.findBySessionId(sessionId);
+        characterTemplateRepository.deleteAll(templates);
+
+        List<SessionParticipant> participants = participantRepository.findBySessionId(sessionId);
+        participantRepository.deleteAll(participants);
+
+        chatMessageRepository.deleteBySessionId(sessionId);
+
         sessionRepository.delete(session);
         log.info("Session deleted successfully: {}", sessionId);
     }
@@ -157,13 +171,23 @@ public class SessionService {
         log.info("Removing participant {} from session {}", userId, sessionId);
 
         GameSession session = findSessionById(sessionId);
-        validateMasterPermission(session);
+        User currentUser = getCurrentAuthenticatedUser();
+
+        if (!currentUser.getId().equals(userId)) {
+            validateMasterPermission(session);
+        }
 
         SessionParticipant participant = findParticipantById(userId, sessionId);
         validateParticipantIsNotMaster(participant);
 
         participantRepository.delete(participant);
         log.info("Participant removed successfully");
+    }
+
+    private void validateUserIsParticipant(Long userId, UUID sessionId) {
+        if (!participantRepository.existsByUserIdAndSessionId(userId, sessionId)) {
+            throw new IllegalArgumentException("User is not a participant of this session");
+        }
     }
 
     private void updateSessionFields(GameSession session, UpdateSessionRequest request) {

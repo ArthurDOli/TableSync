@@ -283,7 +283,7 @@ export function Tabletop({ sessionId, isMaster, characters, stompClient, isConne
         <div className="w-full h-full flex flex-col relative">
 
             {isMaster && (
-                <div className="absolute top-4 left-4 z-10 flex items-center gap-2 bg-[rgb(5,5,6)] p-3 rounded-xl border border-zinc-800 
+                <div className="absolute top-4 right-4 z-10 flex items-center gap-2 bg-[rgb(5,5,6)] p-3 rounded-xl border border-zinc-800 
                     shadow-xl backdrop-blur-sm bg-opacity-90"
                 >
                     <ImageIcon size={18} className="text-zinc-400" />

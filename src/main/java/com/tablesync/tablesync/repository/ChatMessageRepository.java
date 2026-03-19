@@ -13,4 +13,6 @@ import java.util.UUID;
 public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> {
      @EntityGraph(attributePaths = {"user", "session"})
      Page<ChatMessage> findBySessionIdOrderByTimestampDesc(UUID sessionId, Pageable pageable);
+
+     void deleteBySessionId(UUID sessionId);
 }

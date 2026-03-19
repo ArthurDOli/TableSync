@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { api } from "../services/api";
 import { Button } from "@/components/ui/button";
-import { Ghost, Sparkles, ImageIcon, User, Swords, AlertCircle } from "lucide-react";
+import { Ghost, Sparkles, ImageIcon, User, Swords, AlertCircle, ArrowLeft } from "lucide-react";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -31,14 +31,23 @@ export function SessionCreate() {
 
     const [formError, setFormError] = useState('');
 
-    const currentUserId = Number(localStorage.getItem('userId'));
-
     useEffect(() => {
         async function fetchData() {
             try {
                 const sessionRes = await api.get(`/sessions/${id}`);
+                const currentUserId = Number(localStorage.getItem("userId"));
+
                 if (currentUserId === sessionRes.data.masterId) {
                     navigate(`/session/${id}/play`, { replace: true });
+                    return;
+                }
+
+                const charsRes = await api.get(`/characters/session/${id}`);
+                const username = localStorage.getItem("username");
+                const hasCharacter = charsRes.data.some((c: any) => c.playerName === username);
+
+                if (hasCharacter) {
+                    navigate(`/session/${id}/play`, { replace: true })
                     return;
                 }
 
@@ -56,12 +65,13 @@ export function SessionCreate() {
                 }
             } catch (error) {
                 console.error("Error fetching data", error);
+                navigate('/dashboard');
             } finally {
                 setIsLoading(false);
             }
         }
         fetchData();
-    }, [id, currentUserId, navigate]);
+    }, [id, navigate]);
 
     function handleFieldChange(key: string, value: string) {
         setSheetData(prev => ({
@@ -151,7 +161,7 @@ export function SessionCreate() {
                     <Button
                         onClick={() => window.location.reload()}
                         className="bg-zinc-100 text-black w-full font-bold
-                            hover:bg-white"
+                            hover:scale-[1.02]"
                     >
                         Refresh Page
                     </Button>
@@ -160,7 +170,7 @@ export function SessionCreate() {
                         onClick={() => navigate('/dashboard')}
                         variant="ghost"
                         className="mt-2 text-zinc-500 w-full
-                            hover:text-white"
+                            hover:bg-zinc-100"
                     >
                         Back to Dashboard
                     </Button>
@@ -176,14 +186,28 @@ export function SessionCreate() {
                 bg-[size:128px_128px]"
             >
                 <div className="w-full max-w-md">
-                    <div className="mb-10 text-center">
-                        <h1 className="text-3xl font-extrabold tracking-tight text-zinc-100 mb-2">
-                            Forge your Hero
-                        </h1>
+                    <div className="mb-10 relative flex items-center justify-center">                        
+                        <div className="absolute left-0">
+                            <button
+                                onClick={() => navigate('/dashboard')}
+                                title="Back to Dashboard"
+                                className="text-red-500 rounded-lg p-2 border border-red-800 bg-zinc-900/50 transition-colors
+                                    hover:bg-red-800 hover:text-white shrink-0
+                                    hover:shadow-[0_0_20px_rgba(220,38,38,0.5)]"
+                            >
+                                <ArrowLeft size={18}/>
+                            </button>
+                        </div>
 
-                        <p className="text-zinc-400 text-sm">
-                            Using template: <span className="text-blue-400 font-semibold">{template.name}</span>
-                        </p>
+                        <div className="text-center">
+                            <h1 className="text-3xl font-extrabold tracking-tight text-zinc-100 mb-2">
+                                Forge your Hero
+                            </h1>
+
+                            <p className="text-zinc-400 text-sm">
+                                Using template: <span className="text-blue-400 font-semibold">{template.name}</span>
+                            </p>
+                        </div>
                     </div>
 
                     <form
@@ -317,9 +341,10 @@ export function SessionCreate() {
                             <Button
                                 type="submit"
                                 disabled={isSaving}
-                                className="w-full h-12 bg-blue-700 text-white font-bold text-lg transition-all
-                                    shadow-[0_0_20px_rgba(37,99,235,0.2)]
-                                    hover:bg-blue-700"
+                                className="mt-2 w-full h-11 bg-zinc-100 text-zinc-900 font-bold transition-all duration-300
+                                    hover:bg-white
+                                    hover:scale-[1.02]
+                                    hover:shadow-[0_0_20px_rgba(255,255,255,0.2)]"
                             >
                                 {isSaving ? "Forging..." : "Join Tabletop"}
                             </Button>

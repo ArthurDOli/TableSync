@@ -70,6 +70,9 @@ public class ChatService {
     public List<ChatMessageResponse> getSessionHistory(UUID sessionId, int page, int size) {
         validateSessionExists(sessionId);
 
+        User currentUser = getCurrentAuthenticatedUser();
+        validateUserIsParticipant(currentUser.getId(), sessionId);
+
         Pageable pageable = PageRequest.of(page, size);
         Page<ChatMessage> messagePage = chatMessageRepository
                 .findBySessionIdOrderByTimestampDesc(sessionId, pageable);
