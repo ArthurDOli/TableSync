@@ -242,8 +242,10 @@ export function Dashboard() {
 
                         <Button
                             type="submit"
-                            className="mt-2 font-bold w-full transition-all duration-300 hover:bg-zinc-800
-                                hover:shadow-[0_0_20px_rgba(255,255,255,0.15)]"
+                            className="mt-2 w-full h-11 bg-zinc-100 text-zinc-900 font-bold transition-all duration-300
+                                hover:bg-white
+                                hover:scale-[1.02]
+                                hover:shadow-[0_0_20px_rgba(255,255,255,0.2)]"
                         >
                             Create
                         </Button>
@@ -315,8 +317,10 @@ export function Dashboard() {
 
                             <Button
                                 type="submit"
-                                className="mt-2 font-bold w-full transition-all duration-300 hover:bg-zinc-800
-                                    hover:shadow-[0_0_20px_rgba(255,255,255,0.15)]"
+                                className="mt-2 w-full h-11 bg-zinc-100 text-zinc-900 font-bold transition-all duration-300
+                                hover:bg-white
+                                hover:scale-[1.02]
+                                hover:shadow-[0_0_20px_rgba(255,255,255,0.2)]"
                             >
                                 Enter
                             </Button>

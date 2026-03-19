@@ -341,10 +341,10 @@ export function SessionCreate() {
                             <Button
                                 type="submit"
                                 disabled={isSaving}
-                                className="w-full h-12 bg-blue-700 text-white font-bold text-lg transition-all
-                                    hover:shadow-[0_0_20px_rgba(37,99,235,0.2)]
-                                    hover:bg-blue-600
-                                    hover:scale-101"
+                                className="mt-2 w-full h-11 bg-zinc-100 text-zinc-900 font-bold transition-all duration-300
+                                    hover:bg-white
+                                    hover:scale-[1.02]
+                                    hover:shadow-[0_0_20px_rgba(255,255,255,0.2)]"
                             >
                                 {isSaving ? "Forging..." : "Join Tabletop"}
                             </Button>

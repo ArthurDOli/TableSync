@@ -226,7 +226,10 @@ export function SessionEdit() {
                         <Button
                             type="submit"
                             disabled={isSaving}
-                            className="w-full h-11 bg-zinc-100 text-zinc-900 font-bold transition-all duration-300 hover:bg-white hover:shadow-[0_0_20px_rgba(255,255,255,0.2)]"
+                            className="mt-2 w-full h-11 bg-zinc-100 text-zinc-900 font-bold transition-all duration-300
+                                hover:bg-white
+                                hover:scale-[1.02]
+                                hover:shadow-[0_0_20px_rgba(255,255,255,0.2)]"
                         >
                             {isSaving ? "Saving..." : "Save Template & Open Tabletop"}
                         </Button>
