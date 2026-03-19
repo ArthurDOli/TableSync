@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { api } from "../services/api";
 import { useNavigate } from "react-router-dom";
-import { Layers3, LogOut, Plus, LogIn, Lock, Check, Copy, Ghost, Eye, EyeOff, Settings2, Trash2 } from "lucide-react";
+import { Layers3, LogOut, Plus, LogIn, Lock, Check, Copy, Ghost, Eye, EyeOff, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field, FieldGroup, FieldLabel, FieldDescription } from "@/components/ui/field";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 type Session = {
     id: string;
@@ -39,31 +40,43 @@ export function Dashboard() {
     const [sessionId, setSessionId] = useState('');
     const [copiedId, setCopiedId] = useState<string | null>(null);
     const [showUserMenu, setShowUserMenu] = useState(false);
+    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+    const [sessionToDelete, setSessionToDelete] = useState<Session | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     const currentUsername = localStorage.getItem('username') || 'User';
     const initials = currentUsername.substring(0, 2).toUpperCase();
     const navigate = useNavigate();
     const currentUserId = Number(localStorage.getItem('userId'));
 
-    async function handleLeaveOrDeleteSession(e: React.MouseEvent, session: Session, isMaster: boolean) {
+    function handleLeaveOrDeleteSession(e: React.MouseEvent, session: Session) {
         e.stopPropagation();
+        setSessionToDelete(session);
+        setShowDeleteDialog(true);
+    }
 
-        const message = isMaster 
-            ? `Are you sure you want to DELETE the session "${session.name}"? This will delete all characters and chat.`
-            : `Are you sure you want to EXIT the session "${session.name}"?`;
+    async function confirmDelete() {
+        if (!sessionToDelete) return;
 
-        if (window.confirm(message)) {
-            try {
-                if (isMaster) {
-                    await api.delete(`/sessions/${session.id}`);
-                } else {
-                    await api.delete(`/sessions/${session.id}/participants/${currentUserId}`);
-                }
-                setSessions(prev => prev.filter(s => s.id !== session.id));
-            } catch (error) {
-                console.error("Error processing action", error);
-                alert("An error occurred. Please try again.");
+        setIsDeleting(true);
+
+        try {
+            const isMaster = sessionToDelete.masterId === currentUserId;
+
+            if (isMaster) {
+                await api.delete(`/sessions/${sessionToDelete.id}`);
+            } else {
+                await api.delete(`/sessions/${sessionToDelete.id}/participants/${currentUserId}`);
             }
+
+            setSessions(prev => prev.filter(s => s.id !== sessionToDelete.id));
+            setShowDeleteDialog(false);
+            setSessionToDelete(null);
+        } catch (error) {
+            console.log("Error processing action", error);
+            alert("An erro occurred. Please try again");
+        } finally {
+            setIsDeleting(false);
         }
     }
 
@@ -188,9 +201,6 @@ export function Dashboard() {
                                 <div className="px-4 py-2 border-b border-zinc-800/80 mb-2">
                                     <p className="text-sm font-bold text-white truncate">{currentUsername}</p>
                                 </div>
-                                <button className="flex items-center gap-2 px-4 py-2 text-sm text-zinc-400 hover:bg-zinc-800 hover:text-white transition-colors w-full text-left">
-                                    <Settings2 size={16}/> Settings
-                                </button>
                                 <button
                                     onClick={handleLogout}
                                     className="flex items-center gap-2 px-4 py-2 text-sm text-red-500 hover:bg-red-500/10 transition-colors w-full text-left"
@@ -405,7 +415,7 @@ export function Dashboard() {
                                         </div>
                                         
                                         <button 
-                                            onClick={(e) => handleLeaveOrDeleteSession(e, session, session.masterId === currentUserId)}
+                                            onClick={(e) => handleLeaveOrDeleteSession(e, session)}
                                             className="text-zinc-500 hover:text-red-500 hover:bg-red-500/10 p-1.5 rounded-md transition-colors"
                                             title={session.masterId === currentUserId ? "Delete Session" : "Leave Session"}
                                         >
@@ -444,6 +454,42 @@ export function Dashboard() {
                     )}
                 </div>
             </main>
+
+            <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+                <DialogContent className="bg-[rgb(10,10,12)] border-zinc-900 text-white border">
+                    <DialogHeader>
+                        <DialogTitle className="text-xl font-bold">
+                            {sessionToDelete?.masterId === currentUserId ? 'Delete Session' : 'Leave Session'}
+                        </DialogTitle>
+                        <DialogDescription className="text-zinc-400">
+                            {sessionToDelete?.masterId === currentUserId 
+                                ? `Are you sure you want to DELETE "${sessionToDelete.name}"? This will remove all characters and chat history permanently.`
+                                : `Are you sure you want to EXIT "${sessionToDelete?.name}"?`
+                            }
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="gap-2 bg-[rgb(10,10,12)]">
+                        <Button
+                            variant="outline"
+                            onClick={() => setShowDeleteDialog(false)}
+                            disabled={isDeleting}
+                            className="border-zinc-700 bg-zinc-800 hover:bg-zinc-700 hover:text-zinc-100
+                                transition-all duration-300"
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={confirmDelete}
+                            disabled={isDeleting}
+                            className="bg-red-600 text-white border-red-600 hover:bg-red-800 hover:text-red-100
+                                transition-all duration-300"
+                        >
+                            {isDeleting ? 'Processing...' : (sessionToDelete?.masterId === currentUserId ? 'Delete' : 'Leave')}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
