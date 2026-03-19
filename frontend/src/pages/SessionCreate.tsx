@@ -161,7 +161,7 @@ export function SessionCreate() {
                     <Button
                         onClick={() => window.location.reload()}
                         className="bg-zinc-100 text-black w-full font-bold
-                            hover:bg-white"
+                            hover:scale-[1.02]"
                     >
                         Refresh Page
                     </Button>
@@ -170,7 +170,7 @@ export function SessionCreate() {
                         onClick={() => navigate('/dashboard')}
                         variant="ghost"
                         className="mt-2 text-zinc-500 w-full
-                            hover:text-white"
+                            hover:bg-zinc-100"
                     >
                         Back to Dashboard
                     </Button>

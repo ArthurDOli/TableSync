@@ -122,6 +122,7 @@ export function SessionPlay() {
                 setMessages(historyRes.data.reverse());
             } catch (error) {
                 console.error("Error fetching initial data:", error);
+                navigate("/dashboard");
             }
         }
 

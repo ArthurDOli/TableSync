@@ -33,15 +33,15 @@ export function Session() {
 
                 if (isMaster) {
                     if (!hasTemplate) {
-                        navigate(`/session/${id}/edit`);
+                        navigate(`/session/${id}/edit`, { replace: true });
                     } else {
-                        navigate(`/session/${id}/play`);
+                        navigate(`/session/${id}/play`, { replace: true});
                     }
                     return;
                 }
 
                 if (!hasTemplate) {
-                    setError("The Master hasn't created the character template yet. Please wait.");
+                    navigate(`/session/${id}/create`, { replace: true })
                     return;
                 }
 
@@ -51,13 +51,13 @@ export function Session() {
                 const myCharacter = characters.find(c => c.playerName === currentUsername);
 
                 if (!myCharacter) {
-                    navigate(`/session/${id}/create`);
+                    navigate(`/session/${id}/create`, { replace: true });
                 } else {
-                    navigate(`/session/${id}/play`);
+                    navigate(`/session/${id}/play`, { replace: true });
                 }
             } catch (error) {
                 console.log("Error loading session", error);
-                setError("Session not found or and error occurred");
+                setError("Session not found or you don't have access to it");
             }
         }
         routeUser();
