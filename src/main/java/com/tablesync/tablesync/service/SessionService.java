@@ -6,6 +6,7 @@ import com.tablesync.tablesync.dto.session.request.UpdateSessionRequest;
 import com.tablesync.tablesync.dto.session.response.ParticipantResponse;
 import com.tablesync.tablesync.dto.session.response.SessionDetailResponse;
 import com.tablesync.tablesync.dto.session.response.SessionResponse;
+import com.tablesync.tablesync.dto.tabletop.TabletopMessage;
 import com.tablesync.tablesync.entity.*;
 import com.tablesync.tablesync.enums.SessionRole;
 import com.tablesync.tablesync.enums.SessionStatus;
@@ -14,6 +15,7 @@ import com.tablesync.tablesync.exception.ResourceNotFoundException;
 import com.tablesync.tablesync.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -35,6 +37,7 @@ public class SessionService {
     private final PlayerCharacterRepository characterRepository;
     private final CharacterTemplateRepository characterTemplateRepository;
     private final ChatMessageRepository chatMessageRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @Transactional
     public SessionResponse createSession(CreateSessionRequest request) {
@@ -182,6 +185,25 @@ public class SessionService {
 
         participantRepository.delete(participant);
         log.info("Participant removed successfully");
+    }
+
+    public void broadcastCharacterJoined(UUID sessionId) {
+        TabletopMessage msg = new TabletopMessage();
+        msg.setSessionId(sessionId.toString());
+        msg.setType("CHARACTER_JOINED");
+        messagingTemplate.convertAndSend("/topic/tabletop/" + sessionId, msg);
+        log.debug("Broadcasted CHARACTER_JOINED for session {}", sessionId);
+    }
+
+    public SessionResponse updateNpcTokens(UUID sessionId, String npcTokensJson) {
+        GameSession session = findSessionById(sessionId);
+        validateMasterPermission(session);
+
+        session.setNpcTokensJson(npcTokensJson);
+        GameSession updatedSession = sessionRepository.save(session);
+
+        log.info("NPC tokens updated successfully: {}", sessionId);
+        return SessionResponse.fromEntity(updatedSession);
     }
 
     private void validateUserIsParticipant(Long userId, UUID sessionId) {

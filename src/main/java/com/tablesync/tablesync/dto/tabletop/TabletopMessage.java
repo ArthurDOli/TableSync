@@ -12,4 +12,6 @@ public class TabletopMessage {
     private String imageUrl;
     private String senderUsername;
     private Double imageScale;
+    private String npcId;
+    private String npmName;
 }

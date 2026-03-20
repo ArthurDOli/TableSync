@@ -23,6 +23,7 @@ public class SessionDetailResponse {
     private String status;
     private String backgroundImageUrl;
     private Double backgroundImageScale;
+    private String npcTokensJson;
     private LocalDateTime createdAt;
     private List<ParticipantResponse> participants;
     private Integer totalCharacters;
@@ -43,6 +44,7 @@ public class SessionDetailResponse {
                 .status(session.getStatus().name())
                 .backgroundImageUrl(session.getBackgroundImageUrl())
                 .backgroundImageScale(session.getBackgroundImageScale())
+                .npcTokensJson(session.getNpcTokensJson())
                 .createdAt(session.getCreatedAt())
                 .participants(participants)
                 .totalCharacters(totalCharacters)
