@@ -1,13 +1,19 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { api } from "../services/api";
-import { Plus, Trash2, FileText, Settings2, AlertCircle, ArrowLeft } from "lucide-react";
+import { Plus, Trash2, FileText, Settings2, AlertCircle, ArrowLeft, Download, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field, FieldGroup, FieldLabel, FieldDescription } from "@/components/ui/field";
 
 type AttributeField = {
     name: string;
+};
+
+type PastSession = {
+    id: string;
+    name: string;
+    masterId: number;
 };
 
 export function SessionEdit() {
@@ -21,6 +27,9 @@ export function SessionEdit() {
     const [isSaving, setIsSaving] = useState(false);
 
     const [errorMsg, setErrorMsg] = useState('');
+
+    const [pastSessions, setPastSessions] = useState<PastSession[]>([]);
+    const [importingSessions, setImportingSessions] = useState<Record<string, boolean>>({});
 
     function handleAddField() {
         setFields(prev => [...prev, { name: '' }]);
@@ -93,6 +102,12 @@ export function SessionEdit() {
                     navigate("/dashboard");
                     return;
                 }
+
+                const sessionsRes = await api.get('/sessions/my-sessions');
+                const filtered: PastSession[] = sessionsRes.data.filter(
+                    (s: PastSession) => s.id !== id && s.masterId === currentUserId
+                );
+                setPastSessions(filtered);
             } catch (erro) {
                 navigate("/dashboard")
             }
@@ -100,141 +115,207 @@ export function SessionEdit() {
         verifyAccess();
     }, [id, navigate])
 
+    async function handleImportSession(sessionId: string) {
+        setImportingSessions(prev => ({ ...prev, [sessionId]: true }));
+
+        try {
+            const templateRes = await api.get(`/templates/session/${sessionId}`);
+
+            if (templateRes.data && templateRes.data.length > 0) {
+                const imported = templateRes.data[0];
+                setTemplateName(imported.name);
+                setFields(Object.keys(imported.schema).map(name => ({ name })));
+            } else {
+                alert("This session has no template to import");
+            }
+        } catch (error) {
+            console.error("Error importing template", error);
+        } finally {
+            setImportingSessions(prev => ({ ...prev, [sessionId]: false }));
+        }
+    }
+
     return (
-        <div className="flex flex-col items-center min-h-screen overflow-y-auto bg-black text-white py-12 px-4
+        <div className="flex min-h-screen overflow-y-auto bg-black text-white
             bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)]
             bg-[size:128px_128px]"
         >
-            <div className="w-full max-w-2xl flex items-center gap-3 mb-8">
-                <button
-                    onClick={() => navigate('/dashboard')}
-                    title="Back to Dashboard"
-                    className="text-red-500 rounded-lg p-2 border border-red-800 bg-zinc-900/50 transition-colors
-                        hover:bg-red-800 hover:text-white shrink-0
-                        hover:shadow-[0_0_20px_rgba(220,38,38,0.5)]"
+            {pastSessions.length > 0 && (
+                <div className="hidden lg:flex w-64 shrink-0 flex-col border-r border-zinc-800 py-8 px-4 gap-4
+                    bg-[rgb(5,5,6)]"
                 >
-                    <ArrowLeft size={18}/>
-                </button>
+                    <div className="flex items-center justify-center gap-2 mb-2">
+                        <Download size={16} className="text-zinc-500"/>
+                        <p className="text-sm font-bold text-zinc-300 uppercase tracking-wider">
+                            Import Sheet
+                        </p>
+                    </div>
 
-                <div className="bg-zinc-800/50 p-3 rounded-lg border border-zinc-700/50">
-                    <Settings2 className="text-zinc-300" size={28} />
-                </div>
-                <div>
-                    <h1 className="text-3xl font-extrabold tracking-tight text-zinc-100">
-                        Master Panel
-                    </h1>
-                    <p className="text-zinc-400 text-sm mt-1">
-                        Configure the character sheet template for this session.
+                    <p className="text-sm text-zinc-500 -mt-2">
+                        Click a session below to load its template fields
                     </p>
-                </div>
-            </div>
 
-            <div className="w-full max-w-2xl z-10">
-                <form
-                    onSubmit={handleSaveTemplate}
-                    className="flex flex-col gap-6 bg-[rgb(5,5,6)] border border-zinc-800 p-8 rounded-xl w-full shadow-2xl"
-                >
-                    <FieldGroup>
-                        <Field>
-                            <FieldLabel className="text-zinc-300">
-                                Template Name
-                            </FieldLabel>
-                            <div className="relative">
-                                <FileText className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18}/>
-                                <Input 
-                                    type="text"
-                                    value={templateName}
-                                    onChange={(e) => setTemplateName(e.target.value)}
-                                    required
-                                    placeholder="Ex: D&D 5e Standard"
-                                    className="pl-10 h-11 bg-zinc-900/50 border-zinc-700 text-zinc-200 placeholder:text-zinc-600 focus-visible:ring-zinc-500"
-                                />
-                            </div>
-                            <FieldDescription className="text-zinc-500">
-                                Name this set of rules to keep things organized.
-                            </FieldDescription>
-                        </Field>
-                    </FieldGroup>
-
-                    <hr className="border-zinc-800/80 -mx-8 my-2"/>
-
-                    <div className="flex flex-col gap-4">
-                        <div className="flex justify-between items-center">
-                            <div>
-                                <FieldLabel className="mb-0 text-zinc-300">
-                                    Sheet Attributes
-                                </FieldLabel>
-                                <p className="text-xs text-zinc-500 mt-1">Define health, mana, strength, etc.</p>
-                            </div>
-                            
-                            <Button
-                                type="button"
-                                onClick={handleAddField}
-                                variant="outline"
-                                size="sm"
-                                className="h-8 border-dashed border-zinc-700 bg-transparent text-zinc-300 transition-colors hover:bg-zinc-800 hover:text-white"
+                    <div className="flex flex-col gap-1.5">
+                        {pastSessions.map(session => (
+                            <button
+                                key={session.id}
+                                onClick={() => handleImportSession(session.id)}
+                                disabled={importingSessions[session.id]}
+                                className="flex items-center justify-between w-full text-left px-3 py-2.5 rounded-lg bg-zinc-900/40
+                                    border border-zinc-800/80 text-zinc-300 text-sm transition-all group
+                                    hover:bg-zinc-800/70
+                                    hover:border-zinc-700
+                                    hover:text-white
+                                    disabled:opacity-50
+                                    disabled:cursor-wait"
                             >
-                                <Plus size={14} className="mr-1.5" /> 
-                                Add Field
-                            </Button>
-                        </div>
+                                <span className="truncate">
+                                    {session.name}
+                                </span>
+                                <ChevronRight 
+                                    size={14}
+                                    className="shrink-0 ml-2 text-zinc-600 text-zinc-600 transition-colors
+                                        group-hover:text-zinc-300"
+                                />
+                            </button>
+                        ))}
 
-                        <div className="flex flex-col gap-3 max-h-[40vh] overflow-y-auto pr-2 pb-1 scroll-smooth">
-                            {fields.map((field, index) => (
-                                <div
-                                    key={index}
-                                    className="flex gap-2 items-center animate-in fade-in zoom-in-95 duration-200"
-                                >
+                    </div>
+                </div>
+            )}
+
+            <div className="flex flex-col items-center flex-1 py-12 px-4">
+                <div className="w-full max-w-2xl flex items-center gap-3 mb-8">
+                    <button
+                        onClick={() => navigate('/dashboard')}
+                        title="Back to Dashboard"
+                        className="text-red-500 rounded-lg p-2 border border-red-800 bg-zinc-900/50 transition-colors
+                            hover:bg-red-800 hover:text-white shrink-0
+                            hover:shadow-[0_0_20px_rgba(220,38,38,0.5)]"
+                    >
+                        <ArrowLeft size={18}/>
+                    </button>
+
+                    <div className="bg-zinc-800/50 p-3 rounded-lg border border-zinc-700/50">
+                        <Settings2 className="text-zinc-300" size={28} />
+                    </div>
+                    <div>
+                        <h1 className="text-3xl font-extrabold tracking-tight text-zinc-100">
+                            Master Panel
+                        </h1>
+                        <p className="text-zinc-400 text-sm mt-1">
+                            Configure the character sheet template for this session.
+                        </p>
+                    </div>
+                </div>
+
+                <div className="w-full max-w-2xl z-10">
+                    <form
+                        onSubmit={handleSaveTemplate}
+                        className="flex flex-col gap-6 bg-[rgb(5,5,6)] border border-zinc-800 p-8 rounded-xl w-full shadow-2xl"
+                    >
+                        <FieldGroup>
+                            <Field>
+                                <FieldLabel className="text-zinc-300">
+                                    Template Name
+                                </FieldLabel>
+                                <div className="relative">
+                                    <FileText className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18}/>
                                     <Input 
                                         type="text"
-                                        placeholder="E.g., Max HP, Current HP, Armor Class..."
-                                        value={field.name}
-                                        onChange={e => handleFieldChange(index, e.target.value)}
-                                        className="flex-1 h-10 bg-zinc-900/50 border-zinc-700 text-zinc-200 focus-visible:ring-zinc-500"
+                                        value={templateName}
+                                        onChange={(e) => setTemplateName(e.target.value)}
+                                        required
+                                        placeholder="Ex: D&D 5e Standard"
+                                        className="pl-10 h-11 bg-zinc-900/50 border-zinc-700 text-zinc-200 placeholder:text-zinc-600 focus-visible:ring-zinc-500"
                                     />
-                                    {fields.length > 1 && (
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={() => handleRemoveField(index)}
-                                            className="shrink-0 text-zinc-500 border border-transparent transition-all 
-                                                hover:text-red-400 
-                                                hover:bg-red-500/10 
-                                                hover:border-red-500/20"
-                                            title="Remove attribute"
-                                        >
-                                            <Trash2 size={16}/>
-                                        </Button>
-                                    )}
                                 </div>
-                            ))}
-                        </div>
-                    </div>
+                                <FieldDescription className="text-zinc-500">
+                                    Name this set of rules to keep things organized.
+                                </FieldDescription>
+                            </Field>
+                        </FieldGroup>
 
-                    <hr className="border-zinc-800/80 -mx-8" />
+                        <hr className="border-zinc-800/80 -mx-8 my-2"/>
 
-                    <div className="flex flex-col gap-4">
-                        {errorMsg && (
-                            <div className="flex items-center gap-2 text-red-400 bg-red-500/10 border border-red-500/20 p-3
-                                rounded-lg text-sm animate-in fade-in zoom-in-95">
-                                <AlertCircle size={16}/>
-                                {errorMsg}
+                        <div className="flex flex-col gap-4">
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <FieldLabel className="mb-0 text-zinc-300">
+                                        Sheet Attributes
+                                    </FieldLabel>
+                                    <p className="text-xs text-zinc-500 mt-1">Define health, mana, strength, etc.</p>
+                                </div>
+                                
+                                <Button
+                                    type="button"
+                                    onClick={handleAddField}
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-8 border-dashed border-zinc-700 bg-transparent text-zinc-300 transition-colors hover:bg-zinc-800 hover:text-white"
+                                >
+                                    <Plus size={14} className="mr-1.5" /> 
+                                    Add Field
+                                </Button>
                             </div>
-                        )}
-                        
-                        <Button
-                            type="submit"
-                            disabled={isSaving}
-                            className="mt-2 w-full h-11 bg-zinc-100 text-zinc-900 font-bold transition-all duration-300
-                                hover:bg-white
-                                hover:scale-[1.02]
-                                hover:shadow-[0_0_20px_rgba(255,255,255,0.2)]"
-                        >
-                            {isSaving ? "Saving..." : "Save Template & Open Tabletop"}
-                        </Button>
-                    </div>
-                </form>
+
+                            <div className="flex flex-col gap-3 max-h-[40vh] overflow-y-auto pr-2 pb-1 scroll-smooth">
+                                {fields.map((field, index) => (
+                                    <div
+                                        key={index}
+                                        className="flex gap-2 items-center animate-in fade-in zoom-in-95 duration-200"
+                                    >
+                                        <Input 
+                                            type="text"
+                                            placeholder="E.g., Max HP, Current HP, Armor Class..."
+                                            value={field.name}
+                                            onChange={e => handleFieldChange(index, e.target.value)}
+                                            className="flex-1 h-10 bg-zinc-900/50 border-zinc-700 text-zinc-200 focus-visible:ring-zinc-500"
+                                        />
+                                        {fields.length > 1 && (
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => handleRemoveField(index)}
+                                                className="shrink-0 text-zinc-500 border border-transparent transition-all 
+                                                    hover:text-red-400 
+                                                    hover:bg-red-500/10 
+                                                    hover:border-red-500/20"
+                                                title="Remove attribute"
+                                            >
+                                                <Trash2 size={16}/>
+                                            </Button>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <hr className="border-zinc-800/80 -mx-8" />
+
+                        <div className="flex flex-col gap-4">
+                            {errorMsg && (
+                                <div className="flex items-center gap-2 text-red-400 bg-red-500/10 border border-red-500/20 p-3
+                                    rounded-lg text-sm animate-in fade-in zoom-in-95">
+                                    <AlertCircle size={16}/>
+                                    {errorMsg}
+                                </div>
+                            )}
+                            
+                            <Button
+                                type="submit"
+                                disabled={isSaving}
+                                className="mt-2 w-full h-11 bg-zinc-100 text-zinc-900 font-bold transition-all duration-300
+                                    hover:bg-white
+                                    hover:scale-[1.02]
+                                    hover:shadow-[0_0_20px_rgba(255,255,255,0.2)]"
+                            >
+                                {isSaving ? "Saving..." : "Save Template & Open Tabletop"}
+                            </Button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     );
