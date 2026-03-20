@@ -13,5 +13,6 @@ public class TabletopMessage {
     private String senderUsername;
     private Double imageScale;
     private String npcId;
-    private String npmName;
+    private String npcName;
+    private String schemaJson;
 }

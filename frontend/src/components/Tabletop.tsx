@@ -51,6 +51,7 @@ type TabletopMessage = {
     imageScale?: number;
     npcId?: string;
     npcName?: string;
+    schemaJson?: string;
 };
 
 interface TabletopProps {
@@ -63,6 +64,7 @@ interface TabletopProps {
     initialScale: number;
     initialNpcTokens: NpcToken[];
     onCharacterJoined: () => void;
+    onTemplateUpdated?: (schema: Record<string, string>) => void;
 }
 
 const TOKEN_COLORS = [
@@ -89,9 +91,7 @@ function TokenImage({ url, offsetX, offsetY, scale, radius }: {
     const imgX = -radius + (offsetX / 100) * (diameter - finalW);
     const imgY = -radius + (offsetY / 100) * (diameter - finalH);
 
-    return (
-        <KonvaImage image={image} x={imgX} y={imgY} width={finalW} height={finalH} listening={false} />
-    );
+    return <KonvaImage image={image} x={imgX} y={imgY} width={finalW} height={finalH} listening={false} />;
 }
 
 function NpcImage({ url, radius }: { url: string; radius: number }) {
@@ -105,9 +105,7 @@ function NpcImage({ url, radius }: { url: string; radius: number }) {
     const imgX = -radius + (diameter - finalW) / 2;
     const imgY = -radius + (diameter - finalH) / 2;
 
-    return (
-        <KonvaImage image={image} x={imgX} y={imgY} width={finalW} height={finalH} listening={false} />
-    );
+    return <KonvaImage image={image} x={imgX} y={imgY} width={finalW} height={finalH} listening={false} />;
 }
 
 export function Tabletop({
@@ -120,6 +118,7 @@ export function Tabletop({
     initialScale,
     initialNpcTokens,
     onCharacterJoined,
+    onTemplateUpdated,
 }: TabletopProps) {
     const containerRef = useRef<HTMLDivElement>(null);
 
@@ -131,10 +130,8 @@ export function Tabletop({
     const [bgImageScale, setBgImageScale] = useState(initialScale);
     const [inputUrl, setInputUrl] = useState('');
 
-    // Player tokens
     const [tokens, setTokens] = useState<TokenState[]>([]);
 
-    // NPC tokens
     const [npcTokens, setNpcTokens] = useState<NpcToken[]>(initialNpcTokens ?? []);
     const [npcPanelOpen, setNpcPanelOpen] = useState(false);
     const [newNpcName, setNewNpcName] = useState('');
@@ -213,7 +210,7 @@ export function Tabletop({
                         if (prev.find(n => n.id === data.npcId)) return prev;
                         return [...prev, {
                             id: data.npcId!,
-                            name: data.npcName ?? 'NPC',
+                            name: data.npcName || 'NPC',
                             x: data.x ?? 200,
                             y: data.y ?? 200,
                             imageUrl: data.imageUrl ?? '',
@@ -231,23 +228,34 @@ export function Tabletop({
                         n.id === data.npcId ? { ...n, x: data.x!, y: data.y! } : n
                     ));
                 }
+
+                if (data.type === 'NPC_TOKEN_SCALE' && data.npcId && data.imageScale !== undefined) {
+                    setNpcTokens(prev => prev.map(n =>
+                        n.id === data.npcId ? { ...n, imageScale: data.imageScale! } : n
+                    ));
+                }
+
+                if (data.type === 'TEMPLATE_UPDATED' && data.schemaJson && onTemplateUpdated) {
+                    try {
+                        const parsed = JSON.parse(data.schemaJson);
+                        onTemplateUpdated(parsed);
+                    } catch {
+                        // ignore malformed payload
+                    }
+                }
+
+                if (data.type === 'CHARACTER_IMAGE_UPDATED' && data.characterId && data.imageUrl !== undefined) {
+                    setTokens(prev => prev.map(t =>
+                        t.id === data.characterId ? { ...t, imageUrl: data.imageUrl! } : t
+                    ));
+                }
             }
         );
 
         return () => sub.unsubscribe();
-    }, [stompClient, isConnected, sessionId, onCharacterJoined]);
+    }, [stompClient, isConnected, sessionId, onCharacterJoined, onTemplateUpdated]);
 
-    function broadcastAndSaveNpc(updatedTokens: NpcToken[]) {
-        if (stompClient && isConnected) {
-            stompClient.publish({
-                destination: '/app/tabletop.update',
-                body: JSON.stringify({
-                    sessionId,
-                    type: 'NPC_TOKEN_SYNC',
-                    npcTokens: updatedTokens,
-                })
-            });
-        }
+    function saveNpcTokensToApi(updatedTokens: NpcToken[]) {
         api.patch(`/sessions/${sessionId}/npc-tokens`, {
             npcTokensJson: JSON.stringify(updatedTokens),
         }).catch(err => console.error('Error saving NPC tokens', err));
@@ -283,9 +291,7 @@ export function Tabletop({
             });
         }
 
-        api.patch(`/sessions/${sessionId}/npc-tokens`, {
-            npcTokensJson: JSON.stringify(updated),
-        }).catch(err => console.error('Error saving NPC position', err));
+        saveNpcTokensToApi(updated);
     }
 
     async function handleSetBackground() {
@@ -357,7 +363,7 @@ export function Tabletop({
             });
         }
 
-        broadcastAndSaveNpc(updated);
+        saveNpcTokensToApi(updated);
         setNewNpcName('');
         setNewNpcImageUrl('');
         setNewNpcScale(1);
@@ -374,15 +380,22 @@ export function Tabletop({
             });
         }
 
-        broadcastAndSaveNpc(updated);
+        saveNpcTokensToApi(updated);
     }
 
     function handleNpcScaleChange(npcId: string, newScale: number) {
         const updated = npcTokens.map(n => n.id === npcId ? { ...n, imageScale: newScale } : n);
         setNpcTokens(updated);
-        broadcastAndSaveNpc(updated);
-    }
 
+        if (stompClient && isConnected) {
+            stompClient.publish({
+                destination: '/app/tabletop.update',
+                body: JSON.stringify({ sessionId, type: 'NPC_TOKEN_SCALE', npcId, imageScale: newScale }),
+            });
+        }
+
+        saveNpcTokensToApi(updated);
+    }
 
     function handleWheel(e: any) {
         e.evt.preventDefault();
@@ -429,6 +442,10 @@ export function Tabletop({
                                         destination: '/app/tabletop.update',
                                         body: JSON.stringify({ sessionId, type: 'BACKGROUND_UPDATE', imageUrl: backgroundUrl, imageScale: s }),
                                     });
+                                    if (backgroundUrl) {
+                                        api.patch(`/sessions/${sessionId}/background?url=${encodeURIComponent(backgroundUrl)}&scale=${s}`)
+                                            .catch(() => {});
+                                    }
                                 }
                             }}
                             className="w-16 h-8 bg-zinc-900/50 border-zinc-700 text-sm"
@@ -445,7 +462,6 @@ export function Tabletop({
 
             {isMaster && (
                 <div className="absolute bottom-4 right-4 z-10 w-80 bg-[rgb(5,5,6)] border border-zinc-800 rounded-xl shadow-xl overflow-hidden">
-                    
                     <button
                         onClick={() => setNpcPanelOpen(prev => !prev)}
                         className="w-full flex items-center justify-between px-4 py-2.5 text-sm font-bold text-zinc-300 hover:bg-zinc-800/50 transition-colors"
@@ -457,87 +473,78 @@ export function Tabletop({
                         {npcPanelOpen ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
                     </button>
 
-                    <div 
-                        className={`
-                            transition-all 
-                            duration-300 
-                            ease-in-out 
-                            overflow-hidden
-                            ${npcPanelOpen 
-                                ? 'max-h-[800px] opacity-100 border-t border-zinc-800' 
-                                : 'max-h-0 opacity-0'
-                            }
-                        `}
+                    <div
+                        className={`border-t border-zinc-800 flex flex-col gap-3 overflow-hidden transition-all duration-300 ease-in-out ${
+                            npcPanelOpen ? 'max-h-[480px] p-3 opacity-100' : 'max-h-0 p-0 opacity-0 border-t-0'
+                        }`}
                     >
-                        <div className="p-3 flex flex-col gap-3">
-                            <div className="flex flex-col gap-2">
-                                <Input
-                                    placeholder="Token name (e.g. Goblin)"
-                                    value={newNpcName}
-                                    onChange={e => setNewNpcName(e.target.value)}
-                                    className="h-8 text-sm bg-zinc-900/50 border-zinc-700"
+                        <div className="flex flex-col gap-2">
+                            <Input
+                                placeholder="Token name (e.g. Goblin)"
+                                value={newNpcName}
+                                onChange={e => setNewNpcName(e.target.value)}
+                                className="h-8 text-sm bg-zinc-900/50 border-zinc-700"
+                            />
+                            <Input
+                                placeholder="Image URL (optional)"
+                                value={newNpcImageUrl}
+                                onChange={e => setNewNpcImageUrl(e.target.value)}
+                                className="h-8 text-sm bg-zinc-900/50 border-zinc-700"
+                            />
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs text-zinc-500 w-12 shrink-0">Size</span>
+                                <input
+                                    type="range"
+                                    min="0.5"
+                                    max="3"
+                                    step="0.1"
+                                    value={newNpcScale}
+                                    onChange={e => setNewNpcScale(Number(e.target.value))}
+                                    className="flex-1 accent-red-500"
                                 />
-                                <Input
-                                    placeholder="Image URL (optional)"
-                                    value={newNpcImageUrl}
-                                    onChange={e => setNewNpcImageUrl(e.target.value)}
-                                    className="h-8 text-sm bg-zinc-900/50 border-zinc-700"
-                                />
-                                <div className="flex items-center gap-2">
-                                    <span className="text-xs text-zinc-500 w-12 shrink-0">Size</span>
-                                    <input
-                                        type="range"
-                                        min="0.5"
-                                        max="3"
-                                        step="0.1"
-                                        value={newNpcScale}
-                                        onChange={e => setNewNpcScale(Number(e.target.value))}
-                                        className="flex-1 accent-red-500"
-                                    />
-                                    <span className="text-xs text-zinc-500 w-8 text-right">{newNpcScale.toFixed(1)}</span>
-                                </div>
-                                <Button
-                                    onClick={handleAddNpc}
-                                    disabled={!newNpcName.trim()}
-                                    size="sm"
-                                    className="h-8 bg-red-700 hover:bg-red-600 text-white gap-1.5"
-                                >
-                                    <Plus size={13} /> Add Token
-                                </Button>
+                                <span className="text-xs text-zinc-500 w-8 text-right">{newNpcScale.toFixed(1)}</span>
                             </div>
-
-                            {npcTokens.length > 0 && (
-                                <div className="flex flex-col gap-1.5 max-h-48 overflow-y-auto pr-1">
-                                    <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Placed tokens</p>
-                                    {npcTokens.map(npc => (
-                                        <div key={npc.id} className="flex flex-col gap-1 bg-zinc-900/50 border border-zinc-800 rounded-lg p-2">
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-sm text-zinc-200 font-medium truncate">{npc.name}</span>
-                                                <button
-                                                    onClick={() => handleRemoveNpc(npc.id)}
-                                                    className="text-zinc-500 hover:text-red-400 transition-colors shrink-0 ml-2"
-                                                >
-                                                    <Trash2 size={14} />
-                                                </button>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-[10px] text-zinc-600 w-10">Size</span>
-                                                <input
-                                                    type="range"
-                                                    min="0.5"
-                                                    max="3"
-                                                    step="0.1"
-                                                    value={npc.imageScale}
-                                                    onChange={e => handleNpcScaleChange(npc.id, Number(e.target.value))}
-                                                    className="flex-1 accent-red-500"
-                                                />
-                                                <span className="text-[10px] text-zinc-600 w-6 text-right">{npc.imageScale.toFixed(1)}</span>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
+                            <Button
+                                onClick={handleAddNpc}
+                                disabled={!newNpcName.trim()}
+                                size="sm"
+                                className="h-8 bg-red-700 hover:bg-red-600 text-white gap-1.5"
+                            >
+                                <Plus size={13} /> Add Token
+                            </Button>
                         </div>
+
+                        {npcTokens.length > 0 && (
+                            <div className="flex flex-col gap-1.5 max-h-48 overflow-y-auto pr-1">
+                                <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Placed tokens</p>
+                                {npcTokens.map(npc => (
+                                    <div key={npc.id} className="flex flex-col gap-1 bg-zinc-900/50 border border-zinc-800 rounded-lg p-2">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-sm text-zinc-200 font-medium truncate">{npc.name}</span>
+                                            <button
+                                                onClick={() => handleRemoveNpc(npc.id)}
+                                                className="text-zinc-500 hover:text-red-400 transition-colors shrink-0 ml-2"
+                                            >
+                                                <Trash2 size={14} />
+                                            </button>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-[10px] text-zinc-600 w-10">Size</span>
+                                            <input
+                                                type="range"
+                                                min="0.5"
+                                                max="3"
+                                                step="0.1"
+                                                value={npc.imageScale}
+                                                onChange={e => handleNpcScaleChange(npc.id, Number(e.target.value))}
+                                                className="flex-1 accent-red-500"
+                                            />
+                                            <span className="text-[10px] text-zinc-600 w-6 text-right">{npc.imageScale.toFixed(1)}</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
@@ -560,13 +567,11 @@ export function Tabletop({
                     <Layer>
                         {backgroundUrl && <BackgroundImage url={backgroundUrl} scale={bgImageScale} />}
                     </Layer>
-
                     <Layer>
                         {tokens.map(token => (
                             <TokenShape key={token.id} token={token} onDragEnd={handleTokenDragEnd} />
                         ))}
                     </Layer>
-
                     <Layer>
                         {npcTokens.map(npc => (
                             <NpcTokenShape
@@ -583,7 +588,6 @@ export function Tabletop({
     );
 }
 
-
 function TokenShape({
     token,
     onDragEnd,
@@ -599,7 +603,7 @@ function TokenShape({
             x={token.x}
             y={token.y}
             draggable
-            onDragStart={e => e.cancelBubble = true}
+            onDragStart={e => { e.cancelBubble = true; }}
             onDragEnd={e => { e.cancelBubble = true; onDragEnd(token.id, e.target.x(), e.target.y()); }}
             onMouseEnter={e => { const c = e.target.getStage()?.container(); if (c) c.style.cursor = 'grab'; }}
             onMouseLeave={e => { const c = e.target.getStage()?.container(); if (c) c.style.cursor = 'move'; }}
@@ -609,15 +613,35 @@ function TokenShape({
                     <TokenImage url={token.imageUrl} offsetX={token.imageOffsetX} offsetY={token.imageOffsetY} scale={token.imageScale} radius={RADIUS} />
                 </Group>
             ) : null}
-            <Circle radius={RADIUS} fill={token.imageUrl ? 'transparent' : token.color} stroke="white" strokeWidth={2} shadowBlur={8} shadowColor="black" shadowOpacity={0.5} />
+            <Circle
+                radius={RADIUS}
+                fill={token.imageUrl ? 'transparent' : token.color}
+                stroke="white"
+                strokeWidth={2}
+                shadowBlur={8}
+                shadowColor="black"
+                shadowOpacity={0.5}
+            />
             {!token.imageUrl && (
                 <Text x={-RADIUS} y={-8} width={RADIUS * 2} text={initials} align="center" fill="white" fontSize={14} fontStyle="bold" listening={false} />
             )}
-            <Text x={-50} y={RADIUS + 4} width={100} text={token.name} align="center" fill="#a1a1aa" fontSize={11} listening={false} />
+            <Text
+                x={-50}
+                y={RADIUS + 4}
+                width={100}
+                text={token.name}
+                align="center"
+                fill="white"
+                fontSize={20}
+                fontStyle="bold"
+                shadowColor="black"
+                shadowBlur={4}
+                shadowOpacity={1}
+                listening={false}
+            />
         </Group>
     );
 }
-
 
 function NpcTokenShape({
     npc,
@@ -636,7 +660,7 @@ function NpcTokenShape({
             x={npc.x}
             y={npc.y}
             draggable={draggable}
-            onDragStart={e => e.cancelBubble = true}
+            onDragStart={e => { e.cancelBubble = true; }}
             onDragEnd={e => { e.cancelBubble = true; onDragEnd?.(npc.id, e.target.x(), e.target.y()); }}
             onMouseEnter={e => { if (draggable) { const c = e.target.getStage()?.container(); if (c) c.style.cursor = 'grab'; } }}
             onMouseLeave={e => { const c = e.target.getStage()?.container(); if (c) c.style.cursor = 'move'; }}
@@ -658,7 +682,20 @@ function NpcTokenShape({
             {!npc.imageUrl && (
                 <Text x={-RADIUS} y={-8} width={RADIUS * 2} text={initials} align="center" fill="white" fontSize={14} fontStyle="bold" listening={false} />
             )}
-            <Text x={-50} y={RADIUS + 4} width={100} text={npc.name} align="center" fill="#ef4444" fontSize={11} listening={false} />
+            <Text
+                x={-50}
+                y={RADIUS + 4}
+                width={100}
+                text={npc.name}
+                align="center"
+                fill="#ef4444"
+                fontSize={20}
+                fontStyle="bold"
+                shadowColor="black"
+                shadowBlur={4}
+                shadowOpacity={1}
+                listening={false}
+            />
         </Group>
     );
 }

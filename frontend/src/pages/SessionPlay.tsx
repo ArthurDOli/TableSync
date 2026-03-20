@@ -6,17 +6,18 @@ import SockJS from "sockjs-client";
 import { Tabletop } from "../components/Tabletop";
 import {
     PanelRightClose, PanelRightOpen, PanelLeftClose, PanelLeftOpen,
-    Send, Save, ScrollText, ArrowLeft, Pencil, Plus, Trash2, Check, X
+    Send, Save, ScrollText, ArrowLeft, Pencil, Plus, Trash2, Check, X, ImageIcon, Info
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 type ChatMessage = {
     id: number;
     username: string;
     characterName: string;
     content: string;
-    messageType: 'NORMAL' | 'DICE_ROLL' | 'SYSTEM' | 'WHISPER';
+    messageType: 'NORMAL' | 'DICE_ROLL' | 'SYSTEM';
     diceFormula?: string;
     rollResult?: number;
 };
@@ -77,8 +78,12 @@ export function SessionPlay() {
     const [myCharacterId, setMyCharacterId] = useState<string | null>(null);
     const [myCharacterImageUrl, setMyCharacterImageUrl] = useState('');
     const [charSheetData, setCharSheetData] = useState<Record<string, string>>({});
+    const [originalSheetData, setOriginalSheetData] = useState<Record<string, string>>({});
     const [isSavingSheet, setIsSavingSheet] = useState(false);
     const [saveStatus, setSaveStatus] = useState<'idle' | 'saved' | 'error'>('idle');
+
+    const [editingPhoto, setEditingPhoto] = useState(false);
+    const [newPhotoUrl, setNewPhotoUrl] = useState('');
 
     const [template, setTemplate] = useState<Template | null>(null);
 
@@ -87,8 +92,13 @@ export function SessionPlay() {
     const [isSavingTemplate, setIsSavingTemplate] = useState(false);
     const [templateSaveStatus, setTemplateSaveStatus] = useState<'idle' | 'saved' | 'error'>('idle');
 
+    const [originalEditFields, setOriginalEditFields] = useState<string[]>([]);
+
     const currentUsername = localStorage.getItem('username');
     const currentUserId = Number(localStorage.getItem('userId'));
+
+    const hasSheetChanges = JSON.stringify(charSheetData) !== JSON.stringify(originalSheetData);
+    const hasTemplateChanges = JSON.stringify(editFields) !== JSON.stringify(originalEditFields);
 
     useEffect(() => {
         if (chatContainerRef.current) {
@@ -107,9 +117,7 @@ export function SessionPlay() {
 
                 try {
                     const npcJson = sessionRes.data.npcTokensJson;
-                    if (npcJson) {
-                        setInitialNpcTokens(JSON.parse(npcJson));
-                    }
+                    if (npcJson) setInitialNpcTokens(JSON.parse(npcJson));
                 } catch {
                     setInitialNpcTokens([]);
                 }
@@ -142,6 +150,7 @@ export function SessionPlay() {
                         stringSheet[key] = String(rawSheet[key] ?? '');
                     });
                     setCharSheetData(stringSheet);
+                    setOriginalSheetData(stringSheet);
                 }
 
                 const historyRes = await api.get(`/chat/history/${id}?size=50`);
@@ -187,12 +196,34 @@ export function SessionPlay() {
         }
     }
 
+    function handleTemplateUpdated(newSchema: Record<string, string>) {
+        setTemplate(prev => prev ? { ...prev, schema: newSchema } : prev);
+
+        if (!isMaster) {
+            setCharSheetData(prev => {
+                const updated: Record<string, string> = {};
+                Object.keys(newSchema).forEach(key => {
+                    updated[key] = prev[key] ?? '';
+                });
+                return updated;
+            });
+            setOriginalSheetData(prev => {
+                const updated: Record<string, string> = {};
+                Object.keys(newSchema).forEach(key => {
+                    updated[key] = prev[key] ?? '';
+                });
+                return updated;
+            });
+        }
+    }
+
     async function handleSaveSheet() {
-        if (!myCharacterId) return;
+        if (!myCharacterId || !hasSheetChanges) return;
         setIsSavingSheet(true);
         setSaveStatus('idle');
         try {
             await api.patch(`/characters/${myCharacterId}`, { sheetData: charSheetData });
+            setOriginalSheetData({ ...charSheetData });
             setSaveStatus('saved');
             setTimeout(() => setSaveStatus('idle'), 2000);
         } catch (error) {
@@ -208,15 +239,52 @@ export function SessionPlay() {
         setCharSheetData(prev => ({ ...prev, [key]: value }));
     }
 
+    async function handleSavePhoto() {
+        if (!myCharacterId) return;
+
+        try {
+            await api.patch(`/characters/${myCharacterId}`, { imageUrl: newPhotoUrl.trim() });
+            
+            setMyCharacterImageUrl(newPhotoUrl.trim());
+            setEditingPhoto(false);
+            
+            if (stompClient && isConnected) {
+                stompClient.publish({
+                    destination: '/app/tabletop.update',
+                    body: JSON.stringify({
+                        sessionId: id,
+                        type: 'CHARACTER_IMAGE_UPDATED',
+                        characterId: myCharacterId,
+                        imageUrl: newPhotoUrl.trim(),
+                    }),
+                });
+            }
+            setNewPhotoUrl('');
+        } catch (error) {
+            console.error("Error saving photo: ", error);
+        }
+
+        try {
+            await api.patch(`/characters/${myCharacterId}`, { imageUrl: newPhotoUrl.trim() });
+            setMyCharacterImageUrl(newPhotoUrl.trim());
+            setEditingPhoto(false);
+            setNewPhotoUrl('');
+        } catch (error) {
+            console.error("Error saving photo:", error);
+        }
+    }
+
     function startTemplateEdit() {
         if (!template) return;
         setEditFields(Object.keys(template.schema));
+        setOriginalEditFields(Object.keys(template.schema));
         setTemplateEditMode(true);
     }
 
     function cancelTemplateEdit() {
         setTemplateEditMode(false);
         setEditFields([]);
+        setOriginalEditFields([]);
     }
 
     async function saveTemplateEdit() {
@@ -230,13 +298,22 @@ export function SessionPlay() {
         validFields.forEach(f => { newSchema[f.trim()] = ''; });
 
         try {
-            await api.put(`/templates/${template.id}`, {
-                name: template.name,
-                schema: newSchema,
-            });
+            await api.put(`/templates/${template.id}`, { name: template.name, schema: newSchema });
             setTemplate(prev => prev ? { ...prev, schema: newSchema } : prev);
             setTemplateEditMode(false);
             setTemplateSaveStatus('saved');
+
+            if (stompClient && isConnected) {
+                stompClient.publish({
+                    destination: '/app/tabletop.update',
+                    body: JSON.stringify({
+                        sessionId: id,
+                        type: 'TEMPLATE_UPDATED',
+                        schemaJson: JSON.stringify(newSchema),
+                    }),
+                });
+            }
+
             setTimeout(() => setTemplateSaveStatus('idle'), 2000);
         } catch (error) {
             console.error("Error saving template:", error);
@@ -278,12 +355,21 @@ export function SessionPlay() {
         return TOKEN_COLORS[index % TOKEN_COLORS.length];
     }
 
-    const saveButtonLabel = isSavingSheet ? 'Saving' : saveStatus === 'saved' ? 'Saved!' : saveStatus === 'error' ? 'Error!' : 'Save';
+    const saveButtonLabel = isSavingSheet
+        ? 'Saving...'
+        : saveStatus === 'saved'
+        ? 'Saved!'
+        : saveStatus === 'error'
+        ? 'Error!'
+        : 'Save';
+
     const saveButtonClass = saveStatus === 'saved'
         ? 'bg-emerald-600 hover:bg-emerald-600'
         : saveStatus === 'error'
         ? 'bg-red-600 hover:bg-red-600'
-        : 'hover:bg-zinc-800';
+        : hasSheetChanges
+        ? 'bg-emerald-700 hover:bg-emerald-600 hover:shadow-[0_0_15px_rgba(16,185,129,0.35)]'
+        : 'bg-zinc-700 opacity-50 cursor-not-allowed';
 
     return (
         <div className="flex h-screen w-screen bg-zinc-900 text-white overflow-hidden">
@@ -302,7 +388,7 @@ export function SessionPlay() {
                         {!isMaster ? (
                             <Button
                                 onClick={handleSaveSheet}
-                                disabled={isSavingSheet}
+                                disabled={isSavingSheet || !hasSheetChanges}
                                 size="sm"
                                 className={`h-7 px-3 text-xs font-bold text-white transition-all ${saveButtonClass}`}
                             >
@@ -323,7 +409,7 @@ export function SessionPlay() {
                                 <div className="flex gap-1">
                                     <Button
                                         onClick={saveTemplateEdit}
-                                        disabled={isSavingTemplate}
+                                        disabled={isSavingTemplate || !hasTemplateChanges}
                                         size="sm"
                                         className="h-7 px-2 text-xs bg-emerald-700 hover:bg-emerald-600 text-white"
                                     >
@@ -348,20 +434,58 @@ export function SessionPlay() {
                         {!isMaster && (
                             <>
                                 <div className="flex items-center gap-3 bg-zinc-900/50 border border-zinc-800 rounded-xl p-3">
-                                    <div className="w-12 h-12 shrink-0 rounded-full border-2 border-zinc-700 overflow-hidden bg-zinc-800 flex items-center justify-center">
-                                        {myCharacterImageUrl ? (
-                                            <img src={myCharacterImageUrl} alt={myCharacterName} className="w-full h-full object-cover" />
-                                        ) : (
-                                            <span className="text-lg font-black text-zinc-600 select-none">
-                                                {myCharacterName.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || '?'}
-                                            </span>
-                                        )}
+                                    <div className="relative group w-12 h-12 shrink-0">
+                                        <div className="w-12 h-12 rounded-full border-2 border-zinc-700 overflow-hidden bg-zinc-800 flex items-center justify-center">
+                                            {myCharacterImageUrl ? (
+                                                <img src={myCharacterImageUrl} alt={myCharacterName} className="w-full h-full object-cover" />
+                                            ) : (
+                                                <span className="text-lg font-black text-zinc-600 select-none">
+                                                    {myCharacterName.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || '?'}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <button
+                                            onClick={() => { setEditingPhoto(true); setNewPhotoUrl(myCharacterImageUrl); }}
+                                            className="absolute inset-0 rounded-full bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                        >
+                                            <ImageIcon size={14} className="text-white" />
+                                        </button>
                                     </div>
                                     <div className="min-w-0">
                                         <p className="text-sm font-bold text-zinc-100 truncate">{myCharacterName || '—'}</p>
                                         <p className="text-xs text-zinc-500 truncate">{currentUsername}</p>
                                     </div>
                                 </div>
+
+                                {editingPhoto && (
+                                    <div className="flex flex-col gap-2 p-3 bg-zinc-900/50 border border-zinc-700 rounded-xl animate-in fade-in zoom-in-95 duration-200">
+                                        <p className="text-xs text-zinc-400 font-bold uppercase tracking-wider">Update Avatar</p>
+                                        <Input
+                                            type="text"
+                                            placeholder="https://..."
+                                            value={newPhotoUrl}
+                                            onChange={e => setNewPhotoUrl(e.target.value)}
+                                            className="h-8 text-sm bg-zinc-900 border-zinc-700"
+                                        />
+                                        <div className="flex gap-2">
+                                            <Button
+                                                onClick={handleSavePhoto}
+                                                size="sm"
+                                                className="flex-1 h-7 text-xs bg-blue-700 hover:bg-blue-600 text-white"
+                                            >
+                                                <Check size={12} className="mr-1" /> Apply
+                                            </Button>
+                                            <Button
+                                                onClick={() => { setEditingPhoto(false); setNewPhotoUrl(''); }}
+                                                size="sm"
+                                                variant="ghost"
+                                                className="h-7 px-2 text-xs text-zinc-400 hover:text-white"
+                                            >
+                                                <X size={12} />
+                                            </Button>
+                                        </div>
+                                    </div>
+                                )}
 
                                 {Object.keys(charSheetData).length === 0 ? (
                                     <div className="flex flex-col items-center justify-center flex-1 text-center text-zinc-600 gap-2 py-8">
@@ -469,6 +593,7 @@ export function SessionPlay() {
                     initialScale={initialBgScale}
                     initialNpcTokens={initialNpcTokens}
                     onCharacterJoined={handleCharacterJoined}
+                    onTemplateUpdated={handleTemplateUpdated}
                 />
 
                 <div className="absolute top-4 left-4 z-20 flex items-center gap-1 bg-[rgb(5,5,6)] p-1.5 rounded-xl border border-zinc-800 shadow-xl">
@@ -542,6 +667,23 @@ export function SessionPlay() {
                     </div>
 
                     <form onSubmit={handleSendMessage} className="p-3 bg-[rgb(5,5,6)] border-t border-zinc-800 flex gap-2 shrink-0">
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <button 
+                                        type="button"
+                                        className="shrink-0 text-zinc-600 transition-colors
+                                            hover:text-zinc-400"
+                                    >
+                                        <Info size={16}/>
+                                    </button>
+                                </TooltipTrigger>
+                                <TooltipContent side="top" className="max-w-[600px] text-xs text-center flex flex-col gap-1">
+                                    Use <span className="font-mono text-blue-400">/roll 2d20</span> to roll dice.<br/>
+                                    Format: <span className="font-mono text-zinc-300">NdN+N</span>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
                         <Input
                             type="text"
                             placeholder={isConnected ? "Type your message..." : "Connecting to chat..."}
