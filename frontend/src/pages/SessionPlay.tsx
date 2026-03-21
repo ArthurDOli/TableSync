@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { api } from "../services/api";
 import { Client } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
@@ -65,6 +65,10 @@ export function SessionPlay() {
     const [isConnected, setIsConnected] = useState(false);
     const chatContainerRef = useRef<HTMLDivElement>(null);
 
+    const [chatPage, setChatPage] = useState(0);
+    const [chatHasMore, setChatHasMore] = useState(false);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
+
     const [myCharacterName, setMyCharacterName] = useState('Master');
     const [characters, setCharacters] = useState<Character[]>([]);
     const [isMaster, setIsMaster] = useState(false);
@@ -86,13 +90,11 @@ export function SessionPlay() {
     const [newPhotoUrl, setNewPhotoUrl] = useState('');
 
     const [template, setTemplate] = useState<Template | null>(null);
-
     const [templateEditMode, setTemplateEditMode] = useState(false);
     const [editFields, setEditFields] = useState<string[]>([]);
+    const [originalEditFields, setOriginalEditFields] = useState<string[]>([]);
     const [isSavingTemplate, setIsSavingTemplate] = useState(false);
     const [templateSaveStatus, setTemplateSaveStatus] = useState<'idle' | 'saved' | 'error'>('idle');
-
-    const [originalEditFields, setOriginalEditFields] = useState<string[]>([]);
 
     const currentUsername = localStorage.getItem('username');
     const currentUserId = Number(localStorage.getItem('userId'));
@@ -101,9 +103,9 @@ export function SessionPlay() {
     const hasTemplateChanges = JSON.stringify(editFields) !== JSON.stringify(originalEditFields);
 
     useEffect(() => {
-        if (chatContainerRef.current) {
-            chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
-        }
+        const el = chatContainerRef.current;
+        if (!el) return;
+        el.scrollTop = el.scrollHeight;
     }, [messages]);
 
     useEffect(() => {
@@ -153,8 +155,11 @@ export function SessionPlay() {
                     setOriginalSheetData(stringSheet);
                 }
 
-                const historyRes = await api.get(`/chat/history/${id}?size=50`);
-                setMessages(historyRes.data.reverse());
+                const historyRes = await api.get(`/chat/history/${id}?page=0&size=50`);
+                const reversed = [...historyRes.data.messages].reverse();
+                setMessages(reversed);
+                setChatHasMore(historyRes.data.hasMore);
+                setChatPage(0);
             } catch (error) {
                 console.error("Error fetching initial data:", error);
                 navigate('/dashboard');
@@ -169,7 +174,7 @@ export function SessionPlay() {
         const token = localStorage.getItem('token');
 
         const client = new Client({
-            webSocketFactory: () => new SockJS('http://localhost:8080/ws'),
+            webSocketFactory: () => new SockJS(import.meta.env.VITE_WS_URL ?? 'http://localhost:8080/ws'),
             connectHeaders: { Authorization: `Bearer ${token}` },
             reconnectDelay: 5000,
             onConnect: () => {
@@ -186,6 +191,43 @@ export function SessionPlay() {
         setStompClient(client);
         return () => { client.deactivate(); };
     }, [id]);
+
+    const loadOlderMessages = useCallback(async () => {
+        if (!chatHasMore || isLoadingMore || !id) return;
+
+        setIsLoadingMore(true);
+        const nextPage = chatPage + 1;
+
+        try {
+            const el = chatContainerRef.current;
+            const prevHeight = el?.scrollHeight ?? 0;
+
+            const res = await api.get(`/chat/history/${id}?page=${nextPage}&size=50`);
+            const older = [...res.data.messages].reverse();
+
+            setMessages(prev => [...older, ...prev]);
+            setChatHasMore(res.data.hasMore);
+            setChatPage(nextPage);
+
+            requestAnimationFrame(() => {
+                if (el) {
+                    el.scrollTop = el.scrollHeight - prevHeight;
+                }
+            });
+        } catch (error) {
+            console.error("Error loading older messages:", error);
+        } finally {
+            setIsLoadingMore(false);
+        }
+    }, [chatHasMore, isLoadingMore, chatPage, id]);
+
+    function handleChatScroll() {
+        const el = chatContainerRef.current;
+        if (!el) return;
+        if (el.scrollTop === 0 && chatHasMore && !isLoadingMore) {
+            loadOlderMessages();
+        }
+    }
 
     async function handleCharacterJoined() {
         try {
@@ -241,13 +283,14 @@ export function SessionPlay() {
 
     async function handleSavePhoto() {
         if (!myCharacterId) return;
+        const trimmed = newPhotoUrl.trim();
 
         try {
-            await api.patch(`/characters/${myCharacterId}`, { imageUrl: newPhotoUrl.trim() });
-            
-            setMyCharacterImageUrl(newPhotoUrl.trim());
+            await api.patch(`/characters/${myCharacterId}`, { imageUrl: trimmed });
+            setMyCharacterImageUrl(trimmed);
             setEditingPhoto(false);
-            
+            setNewPhotoUrl('');
+
             if (stompClient && isConnected) {
                 stompClient.publish({
                     destination: '/app/tabletop.update',
@@ -255,20 +298,10 @@ export function SessionPlay() {
                         sessionId: id,
                         type: 'CHARACTER_IMAGE_UPDATED',
                         characterId: myCharacterId,
-                        imageUrl: newPhotoUrl.trim(),
+                        imageUrl: trimmed,
                     }),
                 });
             }
-            setNewPhotoUrl('');
-        } catch (error) {
-            console.error("Error saving photo: ", error);
-        }
-
-        try {
-            await api.patch(`/characters/${myCharacterId}`, { imageUrl: newPhotoUrl.trim() });
-            setMyCharacterImageUrl(newPhotoUrl.trim());
-            setEditingPhoto(false);
-            setNewPhotoUrl('');
         } catch (error) {
             console.error("Error saving photo:", error);
         }
@@ -376,7 +409,6 @@ export function SessionPlay() {
 
             <div className={`flex flex-col bg-[rgb(5,5,6)] border-zinc-800 shrink-0 transition-all duration-300 ease-in-out overflow-hidden ${showCharSheet ? 'w-[380px] border-r opacity-100' : 'w-0 border-none opacity-0'}`}>
                 <div className="w-[380px] flex flex-col h-full">
-
                     <div className="p-3 border-b border-zinc-800 flex items-center shrink-0">
                         <div className="flex items-center gap-2 justify-center w-full">
                             <ScrollText size={14} className="text-zinc-500" />
@@ -430,7 +462,6 @@ export function SessionPlay() {
                     </div>
 
                     <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 scroll-smooth">
-
                         {!isMaster && (
                             <>
                                 <div className="flex items-center gap-3 bg-zinc-900/50 border border-zinc-800 rounded-xl p-3">
@@ -539,7 +570,6 @@ export function SessionPlay() {
                                 {templateEditMode && (
                                     <div className="flex flex-col gap-3">
                                         <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-1">Edit Fields</p>
-
                                         <div className="flex flex-col gap-2 max-h-[40vh] overflow-y-auto pr-1">
                                             {editFields.map((field, index) => (
                                                 <div key={index} className="flex gap-2 items-center">
@@ -565,7 +595,6 @@ export function SessionPlay() {
                                                 </div>
                                             ))}
                                         </div>
-
                                         <Button
                                             onClick={() => setEditFields(prev => [...prev, ''])}
                                             variant="outline"
@@ -594,6 +623,9 @@ export function SessionPlay() {
                     initialNpcTokens={initialNpcTokens}
                     onCharacterJoined={handleCharacterJoined}
                     onTemplateUpdated={handleTemplateUpdated}
+                    onCharacterLeft={(characterId) => {
+                        setCharacters(prev => prev.filter(c => c.id !== characterId));
+                    }}
                 />
 
                 <div className="absolute top-4 left-4 z-20 flex items-center gap-1 bg-[rgb(5,5,6)] p-1.5 rounded-xl border border-zinc-800 shadow-xl">
@@ -627,11 +659,9 @@ export function SessionPlay() {
             <div className={`flex flex-col bg-[rgb(5,5,6)] border-zinc-800 shrink-0 transition-all duration-300 ease-in-out overflow-hidden ${showSidebar ? 'w-[400px] border-l opacity-100' : 'w-0 border-none opacity-0'}`}>
                 <div className="w-[400px] flex flex-col h-full">
                     <div className="p-3 border-b border-zinc-800 flex justify-between items-center shrink-0">
-                        <div>
-                            <p className="text-xs text-zinc-500 font-medium">
-                                {isMaster ? 'Playing as: Master' : `Playing as: ${myCharacterName}`}
-                            </p>
-                        </div>
+                        <p className="text-xs text-zinc-500 font-medium">
+                            {isMaster ? 'Playing as: Master' : `Playing as: ${myCharacterName}`}
+                        </p>
                         <button
                             onClick={() => setShowSidebar(false)}
                             className="text-zinc-500 rounded p-1 transition-colors hover:text-white"
@@ -640,46 +670,57 @@ export function SessionPlay() {
                         </button>
                     </div>
 
-                    <div ref={chatContainerRef} className="flex-1 p-4 overflow-y-auto flex flex-col gap-4 scroll-smooth">
-                        {messages.map((msg, index) => {
-                            if (msg.messageType === 'DICE_ROLL') {
+                    <div
+                        ref={chatContainerRef}
+                        onScroll={handleChatScroll}
+                        className="flex-1 p-4 overflow-y-auto flex flex-col gap-4 scroll-smooth"
+                    >
+                        {isLoadingMore && (
+                            <div className="text-center text-zinc-600 text-xs py-2 animate-pulse">
+                                Loading older messages...
+                            </div>
+                        )}
+
+                        {messages
+                            .filter(msg => msg.messageType === 'NORMAL' || msg.messageType === 'DICE_ROLL' || msg.messageType === 'SYSTEM')
+                            .map((msg, index) => {
+                                if (msg.messageType === 'DICE_ROLL') {
+                                    return (
+                                        <div key={msg.id || index} className="bg-zinc-800/90 border border-zinc-700 p-3 rounded-lg shadow-sm text-center">
+                                            <span className="font-bold text-sm text-zinc-400 flex items-center justify-center gap-1 mb-1">System</span>
+                                            <p className="text-zinc-300 text-sm">
+                                                <span className="font-bold" style={{ color: getCharacterColor(msg.characterName) }}>{msg.characterName}</span>
+                                                {' '}roled <span className="text-blue-400 font-bold">{msg.diceFormula}</span>
+                                                {' '}and resulted in <span className="text-green-400 font-bold">{msg.rollResult}</span>
+                                            </p>
+                                        </div>
+                                    );
+                                }
                                 return (
-                                    <div key={msg.id || index} className="bg-zinc-800/90 border border-zinc-700 p-3 rounded-lg shadow-sm text-center">
-                                        <span className="font-bold text-sm text-zinc-400 flex items-center justify-center gap-1 mb-1">System</span>
-                                        <p className="text-zinc-300 text-sm">
-                                            <span className="font-bold" style={{ color: getCharacterColor(msg.characterName) }}>{msg.characterName}</span>
-                                            {' '}roled <span className="text-blue-400 font-bold">{msg.diceFormula}</span>
-                                            {' '}and resulted in <span className="text-green-400 font-bold">{msg.rollResult}</span>
-                                        </p>
+                                    <div key={msg.id || index} className="bg-zinc-900/50 border border-zinc-800/50 p-3 rounded-lg shadow-sm">
+                                        <span className="font-bold text-sm block mb-1 drop-shadow-sm" style={{ color: getCharacterColor(msg.characterName) }}>
+                                            {msg.characterName}{' '}
+                                            <span className="text-zinc-500 text-xs font-normal">({msg.username})</span>
+                                        </span>
+                                        <p className="text-zinc-300 text-sm leading-relaxed">{msg.content}</p>
                                     </div>
                                 );
-                            }
-                            return (
-                                <div key={msg.id || index} className="bg-zinc-900/50 border border-zinc-800/50 p-3 rounded-lg shadow-sm">
-                                    <span className="font-bold text-sm block mb-1 drop-shadow-sm" style={{ color: getCharacterColor(msg.characterName) }}>
-                                        {msg.characterName}{' '}
-                                        <span className="text-zinc-500 text-xs font-normal">({msg.username})</span>
-                                    </span>
-                                    <p className="text-zinc-300 text-sm leading-relaxed">{msg.content}</p>
-                                </div>
-                            );
-                        })}
+                            })}
                     </div>
 
                     <form onSubmit={handleSendMessage} className="p-3 bg-[rgb(5,5,6)] border-t border-zinc-800 flex gap-2 shrink-0">
                         <TooltipProvider>
                             <Tooltip>
                                 <TooltipTrigger asChild>
-                                    <button 
+                                    <button
                                         type="button"
-                                        className="shrink-0 text-zinc-600 transition-colors
-                                            hover:text-zinc-400"
+                                        className="shrink-0 text-zinc-600 transition-colors hover:text-zinc-400"
                                     >
-                                        <Info size={16}/>
+                                        <Info size={16} />
                                     </button>
                                 </TooltipTrigger>
-                                <TooltipContent side="top" className="max-w-[600px] text-xs text-center flex flex-col gap-1">
-                                    Use <span className="font-mono text-blue-400">/roll 2d20</span> to roll dice.<br/>
+                                <TooltipContent side="top" className="max-w-[200px] text-xs text-center flex flex-col gap-1">
+                                    Use <span className="font-mono text-blue-400">/roll 2d20</span> to roll dice.<br />
                                     Format: <span className="font-mono text-zinc-300">NdN+N</span>
                                 </TooltipContent>
                             </Tooltip>

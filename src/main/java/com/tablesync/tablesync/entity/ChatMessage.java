@@ -1,5 +1,6 @@
 package com.tablesync.tablesync.entity;
 
+import com.tablesync.tablesync.encryption.MessageContentConverter;
 import com.tablesync.tablesync.enums.MessageType;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
@@ -37,9 +38,8 @@ public class ChatMessage {
     @Column(nullable = false)
     private String characterName;
 
-    @NotBlank(message = "Message can not be null")
-    @Size(min = 1, max = 1000, message = "Message must be between 2 and 1000 characters")
-    @Column(nullable = false, length = 1000)
+    @Convert(converter = MessageContentConverter.class)
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 
     @CreationTimestamp

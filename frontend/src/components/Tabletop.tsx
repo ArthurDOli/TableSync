@@ -64,6 +64,7 @@ interface TabletopProps {
     initialScale: number;
     initialNpcTokens: NpcToken[];
     onCharacterJoined: () => void;
+    onCharacterLeft?: (characterId: string) => void;
     onTemplateUpdated?: (schema: Record<string, string>) => void;
 }
 
@@ -118,6 +119,7 @@ export function Tabletop({
     initialScale,
     initialNpcTokens,
     onCharacterJoined,
+    onCharacterLeft,
     onTemplateUpdated,
 }: TabletopProps) {
     const containerRef = useRef<HTMLDivElement>(null);
@@ -205,6 +207,11 @@ export function Tabletop({
                     onCharacterJoined();
                 }
 
+                if (data.type === 'CHARACTER_LEFT' && data.characterId) {
+                    setTokens(prev => prev.filter(t => t.id !== data.characterId));
+                    onCharacterLeft?.(data.characterId);
+                }
+
                 if (data.type === 'NPC_TOKEN_ADD' && data.npcId) {
                     setNpcTokens(prev => {
                         if (prev.find(n => n.id === data.npcId)) return prev;
@@ -253,7 +260,7 @@ export function Tabletop({
         );
 
         return () => sub.unsubscribe();
-    }, [stompClient, isConnected, sessionId, onCharacterJoined, onTemplateUpdated]);
+    }, [stompClient, isConnected, sessionId, onCharacterJoined, onCharacterLeft, onTemplateUpdated]);
 
     function saveNpcTokensToApi(updatedTokens: NpcToken[]) {
         api.patch(`/sessions/${sessionId}/npc-tokens`, {
@@ -419,7 +426,7 @@ export function Tabletop({
         <div className="w-full h-full flex flex-col relative">
 
             {isMaster && (
-                <div className="absolute bottom-4 left-4 z-10 flex items-center gap-2 bg-[rgb(5,5,6)] p-3 rounded-xl border border-zinc-800 shadow-xl backdrop-blur-sm">
+                <div className="absolute top-4 right-4 z-10 flex items-center gap-2 bg-[rgb(5,5,6)] p-3 rounded-xl border border-zinc-800 shadow-xl backdrop-blur-sm">
                     <ImageIcon size={18} className="text-zinc-400" />
                     <Input
                         type="text"
@@ -442,10 +449,10 @@ export function Tabletop({
                                         destination: '/app/tabletop.update',
                                         body: JSON.stringify({ sessionId, type: 'BACKGROUND_UPDATE', imageUrl: backgroundUrl, imageScale: s }),
                                     });
-                                    if (backgroundUrl) {
-                                        api.patch(`/sessions/${sessionId}/background?url=${encodeURIComponent(backgroundUrl)}&scale=${s}`)
-                                            .catch(() => {});
-                                    }
+                                }
+                                if (backgroundUrl) {
+                                    api.patch(`/sessions/${sessionId}/background?url=${encodeURIComponent(backgroundUrl)}&scale=${s}`)
+                                        .catch(() => {});
                                 }
                             }}
                             className="w-16 h-8 bg-zinc-900/50 border-zinc-700 text-sm"
@@ -632,7 +639,7 @@ function TokenShape({
                 text={token.name}
                 align="center"
                 fill="white"
-                fontSize={20}
+                fontSize={16}
                 fontStyle="bold"
                 shadowColor="black"
                 shadowBlur={4}
@@ -689,7 +696,7 @@ function NpcTokenShape({
                 text={npc.name}
                 align="center"
                 fill="#ef4444"
-                fontSize={20}
+                fontSize={16}
                 fontStyle="bold"
                 shadowColor="black"
                 shadowBlur={4}

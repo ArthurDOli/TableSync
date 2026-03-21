@@ -183,8 +183,25 @@ public class SessionService {
         SessionParticipant participant = findParticipantById(userId, sessionId);
         validateParticipantIsNotMaster(participant);
 
+        Optional<PlayerCharacter> character = characterRepository.findFirstByUserIdAndSessionId(userId, sessionId);
+        String characterId = null;
+        if (character.isPresent()) {
+            characterId = character.get().getId().toString();
+            characterRepository.delete(character.get());
+            log.info("Deleted character {} for user {} leaving session {}", characterId, userId, sessionId);
+        }
+
         participantRepository.delete(participant);
         log.info("Participant removed successfully");
+
+        if (characterId != null) {
+            TabletopMessage msg = new TabletopMessage();
+            msg.setSessionId(sessionId.toString());
+            msg.setType("CHARACTER_LEFT");
+            msg.setCharacterId(characterId);
+            messagingTemplate.convertAndSend("/topic/tabletop/" + sessionId, msg);
+            log.debug("Broadcasted CHARACTER_LEFT for character {} in session {}", characterId, sessionId);
+        }
     }
 
     public void broadcastCharacterJoined(UUID sessionId) {
@@ -216,11 +233,9 @@ public class SessionService {
         if (request.getName() != null) {
             session.setName(request.getName());
         }
-
         if (request.getDescription() != null) {
             session.setDescription(request.getDescription());
         }
-
         if (request.getBackgroundImageUrl() != null) {
             session.setBackgroundImageUrl(request.getBackgroundImageUrl());
         }
@@ -228,7 +243,6 @@ public class SessionService {
 
     private void validateMasterPermission(GameSession session) {
         User currentUser = getCurrentAuthenticatedUser();
-
         if (!session.getMaster().getId().equals(currentUser.getId())) {
             log.warn("User {} attempted to modify session {} owned by user {}",
                     currentUser.getId(), session.getId(), session.getMaster().getId());
@@ -264,7 +278,6 @@ public class SessionService {
                 .user(master)
                 .role(SessionRole.MASTER)
                 .build();
-
         participantRepository.save(participant);
     }
 
@@ -303,7 +316,6 @@ public class SessionService {
                 .session(session)
                 .role(SessionRole.PLAYER)
                 .build();
-
         participantRepository.save(participant);
     }
 }

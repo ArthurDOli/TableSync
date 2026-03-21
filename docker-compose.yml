@@ -24,6 +24,7 @@ services:
       SPRING_DATASOURCE_PASSWORD: postgres
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRATION: 86400000
+      ENCRYPTION_AES_KEY: '${ENCRYPTION_AES_KEY}'
     ports:
       - "8080:8080"
     depends_on:
