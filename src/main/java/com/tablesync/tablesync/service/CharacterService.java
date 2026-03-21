@@ -30,6 +30,7 @@ public class CharacterService {
     private final SessionParticipantRepository participantRepository;
     private final UserRepository userRepository;
     private final ObjectMapper objectMapper;
+    private final SessionService sessionService;
 
     @Transactional
     public CharacterResponse createCharacter(CharacterRequest request) {
@@ -48,6 +49,8 @@ public class CharacterService {
 
         PlayerCharacter character = buildCharacterEntity(request, session, currentUser, template);
         PlayerCharacter savedCharacter = characterRepository.save(character);
+
+        sessionService.broadcastCharacterJoined(session.getId());
 
         log.info("Character created successfully: {}", savedCharacter.getId());
         return CharacterResponse.fromEntity(savedCharacter, objectMapper);

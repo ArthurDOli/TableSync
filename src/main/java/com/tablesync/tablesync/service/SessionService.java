@@ -6,6 +6,7 @@ import com.tablesync.tablesync.dto.session.request.UpdateSessionRequest;
 import com.tablesync.tablesync.dto.session.response.ParticipantResponse;
 import com.tablesync.tablesync.dto.session.response.SessionDetailResponse;
 import com.tablesync.tablesync.dto.session.response.SessionResponse;
+import com.tablesync.tablesync.dto.tabletop.TabletopMessage;
 import com.tablesync.tablesync.entity.*;
 import com.tablesync.tablesync.enums.SessionRole;
 import com.tablesync.tablesync.enums.SessionStatus;
@@ -14,6 +15,7 @@ import com.tablesync.tablesync.exception.ResourceNotFoundException;
 import com.tablesync.tablesync.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -35,6 +37,7 @@ public class SessionService {
     private final PlayerCharacterRepository characterRepository;
     private final CharacterTemplateRepository characterTemplateRepository;
     private final ChatMessageRepository chatMessageRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @Transactional
     public SessionResponse createSession(CreateSessionRequest request) {
@@ -180,8 +183,44 @@ public class SessionService {
         SessionParticipant participant = findParticipantById(userId, sessionId);
         validateParticipantIsNotMaster(participant);
 
+        Optional<PlayerCharacter> character = characterRepository.findFirstByUserIdAndSessionId(userId, sessionId);
+        String characterId = null;
+        if (character.isPresent()) {
+            characterId = character.get().getId().toString();
+            characterRepository.delete(character.get());
+            log.info("Deleted character {} for user {} leaving session {}", characterId, userId, sessionId);
+        }
+
         participantRepository.delete(participant);
         log.info("Participant removed successfully");
+
+        if (characterId != null) {
+            TabletopMessage msg = new TabletopMessage();
+            msg.setSessionId(sessionId.toString());
+            msg.setType("CHARACTER_LEFT");
+            msg.setCharacterId(characterId);
+            messagingTemplate.convertAndSend("/topic/tabletop/" + sessionId, msg);
+            log.debug("Broadcasted CHARACTER_LEFT for character {} in session {}", characterId, sessionId);
+        }
+    }
+
+    public void broadcastCharacterJoined(UUID sessionId) {
+        TabletopMessage msg = new TabletopMessage();
+        msg.setSessionId(sessionId.toString());
+        msg.setType("CHARACTER_JOINED");
+        messagingTemplate.convertAndSend("/topic/tabletop/" + sessionId, msg);
+        log.debug("Broadcasted CHARACTER_JOINED for session {}", sessionId);
+    }
+
+    public SessionResponse updateNpcTokens(UUID sessionId, String npcTokensJson) {
+        GameSession session = findSessionById(sessionId);
+        validateMasterPermission(session);
+
+        session.setNpcTokensJson(npcTokensJson);
+        GameSession updatedSession = sessionRepository.save(session);
+
+        log.info("NPC tokens updated successfully: {}", sessionId);
+        return SessionResponse.fromEntity(updatedSession);
     }
 
     private void validateUserIsParticipant(Long userId, UUID sessionId) {
@@ -194,11 +233,9 @@ public class SessionService {
         if (request.getName() != null) {
             session.setName(request.getName());
         }
-
         if (request.getDescription() != null) {
             session.setDescription(request.getDescription());
         }
-
         if (request.getBackgroundImageUrl() != null) {
             session.setBackgroundImageUrl(request.getBackgroundImageUrl());
         }
@@ -206,7 +243,6 @@ public class SessionService {
 
     private void validateMasterPermission(GameSession session) {
         User currentUser = getCurrentAuthenticatedUser();
-
         if (!session.getMaster().getId().equals(currentUser.getId())) {
             log.warn("User {} attempted to modify session {} owned by user {}",
                     currentUser.getId(), session.getId(), session.getMaster().getId());
@@ -242,7 +278,6 @@ public class SessionService {
                 .user(master)
                 .role(SessionRole.MASTER)
                 .build();
-
         participantRepository.save(participant);
     }
 
@@ -281,7 +316,6 @@ public class SessionService {
                 .session(session)
                 .role(SessionRole.PLAYER)
                 .build();
-
         participantRepository.save(participant);
     }
 }

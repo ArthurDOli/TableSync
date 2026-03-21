@@ -2,6 +2,7 @@ package com.tablesync.tablesync.controller;
 
 import com.tablesync.tablesync.dto.session.request.CreateSessionRequest;
 import com.tablesync.tablesync.dto.session.request.JoinSessionRequest;
+import com.tablesync.tablesync.dto.session.request.UpdateNpcTokensRequest;
 import com.tablesync.tablesync.dto.session.request.UpdateSessionRequest;
 import com.tablesync.tablesync.dto.session.response.SessionDetailResponse;
 import com.tablesync.tablesync.dto.session.response.SessionResponse;
@@ -192,6 +193,24 @@ public class SessionController {
             @RequestParam(required = false, defaultValue = "1.0") Double scale
     ) {
         SessionResponse response = sessionService.updateBackgroundImage(id, url, scale);
+        return ResponseEntity.ok(response);
+    }
+
+    @PatchMapping("/{id}/npc-tokens")
+    @Operation(
+            summary = "Update NPC tokens",
+            description = "Update NPC/enemy token state on the tabletop (only master)"
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "NPC tokens updated"),
+            @ApiResponse(responseCode = "403", description = "Only master can update NPC tokens"),
+            @ApiResponse(responseCode = "404", description = "Session not found")
+    })
+    public ResponseEntity<SessionResponse> updateNpcTokens(
+            @PathVariable UUID id,
+            @RequestBody UpdateNpcTokensRequest request
+    ) {
+        SessionResponse response = sessionService.updateNpcTokens(id, request.getNpcTokensJson());
         return ResponseEntity.ok(response);
     }
 

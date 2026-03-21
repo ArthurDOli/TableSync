@@ -1,6 +1,7 @@
 package com.tablesync.tablesync.service;
 
 import com.tablesync.tablesync.dto.chat.request.ChatMessageRequest;
+import com.tablesync.tablesync.dto.chat.response.ChatHistoryResponse;
 import com.tablesync.tablesync.dto.chat.response.ChatMessageResponse;
 import com.tablesync.tablesync.entity.ChatMessage;
 import com.tablesync.tablesync.entity.GameSession;
@@ -67,7 +68,7 @@ public class ChatService {
         return response;
     }
 
-    public List<ChatMessageResponse> getSessionHistory(UUID sessionId, int page, int size) {
+    public ChatHistoryResponse getSessionHistory(UUID sessionId, int page, int size) {
         validateSessionExists(sessionId);
 
         User currentUser = getCurrentAuthenticatedUser();
@@ -77,15 +78,21 @@ public class ChatService {
         Page<ChatMessage> messagePage = chatMessageRepository
                 .findBySessionIdOrderByTimestampDesc(sessionId, pageable);
 
-        return messagePage.getContent()
+        List<ChatMessageResponse> messages = messagePage.getContent()
                 .stream()
                 .map(ChatMessageResponse::fromEntity)
                 .toList();
+
+        return ChatHistoryResponse.builder()
+                .messages(messages)
+                .hasMore(messagePage.hasNext())
+                .page(page)
+                .size(size)
+                .build();
     }
 
     private void validateSessionHasTemplate(UUID sessionId) {
         boolean hasTemplate = templateRepository.existsBySessionId(sessionId);
-
         if (!hasTemplate) {
             throw new IllegalArgumentException(
                     "Session must have at least one character template before allowing chat"
@@ -95,7 +102,6 @@ public class ChatService {
 
     private void validateUserHasCharacter(Long userId, UUID sessionId) {
         boolean hasCharacter = characterRepository.existsByUserIdAndSessionId(userId, sessionId);
-
         if (!hasCharacter) {
             throw new IllegalArgumentException(
                     "You must create a character in this session before sending messages"

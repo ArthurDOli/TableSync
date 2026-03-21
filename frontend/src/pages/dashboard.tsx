@@ -409,7 +409,7 @@ export function Dashboard() {
                                             <h3 className="text-xl font-bold text-white mb-2 line-clamp-1" title={session.name}>
                                                 {session.name}
                                             </h3>
-                                            <p className="text-sm text-zinc-400 line-clamp-3">
+                                            <p className="text-xs text-zinc-400 line-clamp-2" title={session.description}>
                                                 {session.description}
                                             </p>
                                         </div>
@@ -423,7 +423,7 @@ export function Dashboard() {
                                         </button>
                                     </div>
 
-                                    <div className="flex items-center justify-between mt-4 pt-4 border-t border-zinc-800">
+                                    <div className="flex items-center justify-between mt-3 pt-3 border-t border-zinc-800">
                                         <span className="text-xs text-zinc-600 font-mono truncate mr-4">
                                             ID: {session.id.substring(0, 8)}...
                                         </span>
