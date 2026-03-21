@@ -217,7 +217,7 @@ export function SessionEdit() {
                         <FieldGroup>
                             <Field>
                                 <FieldLabel className="text-zinc-300">
-                                    Template Name
+                                    Template Name <span className="text-zinc-500 text-xs font-normal ml-1">(Maximum 30 characters)</span>
                                 </FieldLabel>
                                 <div className="relative">
                                     <FileText className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18}/>
