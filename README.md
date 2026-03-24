@@ -12,8 +12,6 @@
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://docs.docker.com/compose/)
 
-[Demo](#-demo) • [Features](#-features) • [Stack](#-tech-stack) • [Architecture](#-architecture) • [Getting Started](#-getting-started) • [API Docs](#-api-documentation) • [How To Play](#-how-to-play)
-
 </div>
 
 ## Demo
@@ -155,13 +153,22 @@ git clone https://github.com/ArthurDOli/TableSync.git
 cd TableSync
 ```
 
-### 2. Start the database
+### 2. Configure Environment Variables
+
+Before starting any services, you need to set up your environment variables. Create a `.env` file in the root of the project.
 
 ```bash
-docker compose up -d postgres
+touch .env
 ```
 
-This starts PostgreSQL on port `5433` (mapped to container port `5432`).
+Open the `.env` file and add your secret keys like this (the `ENCRYPTION_AES_KEY` uses a Google Tink JSON keyset):
+
+```
+JWT_SECRET=your_256bit_hex_secret_here
+ENCRYPTION_AES_KEY={"primaryKeyId":1291421818,"key":[{"keyData":{"typeUrl":"type.googleapis.com/google.crypto.tink.AesGcmKey","value":"GiC569bZiyfw/wHM84sAjz+cCTBYvcuQHKqIk930aTq4QQ==","keyMaterialType":"SYMMETRIC"},"status":"ENABLED","keyId":1291421818,"outputPrefixType":"TINK"}]}
+```
+
+You can generate secure random keys by running `openssl rand -hex 32` in your terminal. For local development, you can use the default Tink keyset provided above for the `ENCRYPTION_AES_KEY`.
 
 ### 3. Configure the backend
 
@@ -174,23 +181,35 @@ spring:
     username: postgres
     password: postgres
 
+  websocket:
+    allowed-origins: http://localhost:5173
+
 jwt:
-  secret: your_256bit_hex_secret_here
+  secret: ${JWT_SECRET}
   expiration: 86400000
 ```
 
-> **Generate a JWT secret:** `openssl rand -hex 32`
-
-### 4. Run the backend
+### 4. Start the database
 
 ```bash
+docker compose up -d postgres
+```
+
+This starts PostgreSQL on port `5433` (mapped to container port `5432`).
+
+
+### 5. Run the backend
+
+```bash
+export $(grep -v '^#' .env | xargs)
+
 ./mvnw spring-boot:run -Dspring-boot.run.profiles=local
 ```
 
 The API will be available at `http://localhost:8080`.  
 Swagger UI: `http://localhost:8080/swagger-ui.html`
 
-### 5. Run the frontend
+### 6. Run the frontend
 
 ```bash
 cd frontend
@@ -200,13 +219,11 @@ npm run dev
 
 The app will be available at `http://localhost:5173`.
 
-### 6. (Optional) Run everything with Docker
+### 7. (Optional) Run everything with Docker
 
 ```bash
 docker compose up --build
 ```
-
-> Set `JWT_SECRET` as an environment variable before running.
 
 ## API Documentation
 
@@ -265,7 +282,3 @@ http://localhost:8080/swagger-ui.html
 ## Contributing
 
 Contributions are welcome! Please open an issue first to discuss any major changes.
-
-## License
-
-This project is licensed under the [MIT License](./LICENSE).
